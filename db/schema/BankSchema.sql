@@ -16,7 +16,7 @@ CREATE INDEX idx_accounts_owner ON accounts(owner);
 -- =========================
 CREATE TABLE IF NOT EXISTS entries (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  account_id BIGINT UNSIGNED,
+  account_id BIGINT UNSIGNED NOT NULL,
   amount BIGINT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
