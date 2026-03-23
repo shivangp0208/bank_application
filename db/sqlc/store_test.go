@@ -30,12 +30,9 @@ func TestTransferTx(t *testing.T) {
 	res := make(chan TransferTxResult)
 	existed := make(map[int]bool)
 
-	for i := range n {
-		txName := fmt.Sprintf("tx %d", i)
-		fmt.Println(txName, "started")
+	for range n {
 		go func() {
-			ctx := context.WithValue(context.Background(), txKey, txName)
-			result, err := store.TransferTx(ctx, TransferTxParams{
+			result, err := store.TransferTx(context.Background(), TransferTxParams{
 				FromAccountID: account1.ID,
 				ToAccountID:   account2.ID,
 				Amount:        amount,
@@ -113,6 +110,63 @@ func TestTransferTx(t *testing.T) {
 	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
 	require.NoError(t, err)
 
+	fmt.Println(">> after:", updatedAccount1.Balance, updatedAccount2.Balance)
+
 	require.Equal(t, account1.Balance-(int64(n)*amount), updatedAccount1.Balance)
 	require.Equal(t, account2.Balance+(int64(n)*amount), updatedAccount2.Balance)
+}
+
+func TestTransferTxDeadlocks(t *testing.T) {
+	store := NewStore(testDB)
+
+	account1, err := testQueries.GetAccount(context.Background(), 1)
+	if err != nil {
+		log.Fatalf("unable to get the sender account with id %v", 1)
+	}
+	account2, err := testQueries.GetAccount(context.Background(), 2)
+	if err != nil {
+		log.Fatalf("unable to get the receiver account with id %v", 2)
+	}
+	fmt.Println(">> before:", account1.Balance, account2.Balance)
+
+	// run n concurrent transfer transactions
+	n := 10
+	amount := int64(10)
+
+	errs := make(chan error)
+
+	for i := range n {
+		fromAccountId := account1.ID
+		toAccountId := account2.ID
+
+		if i%2 == 1 {
+			fromAccountId = account2.ID
+			toAccountId = account1.ID
+		}
+
+		go func() {
+			_, err := store.TransferTx(context.Background(), TransferTxParams{
+				FromAccountID: fromAccountId,
+				ToAccountID:   toAccountId,
+				Amount:        amount,
+			})
+
+			errs <- err
+		}()
+	}
+
+	for range n {
+		err := <-errs
+		require.NoError(t, err)
+	}
+
+	// check for update account balance
+	updatedAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+
+	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+
+	require.Equal(t, account1.Balance, updatedAccount1.Balance)
+	require.Equal(t, account2.Balance, updatedAccount2.Balance)
 }
