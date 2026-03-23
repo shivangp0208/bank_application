@@ -40,7 +40,7 @@ func (q *Queries) DeleteTransfers(ctx context.Context, id uint64) error {
 
 const getTransfers = `-- name: GetTransfers :one
 SELECT id, from_account_id, to_account_id, amount, created_at FROM transfers
-WHERE id = ? LIMIT 1
+WHERE id = ?
 `
 
 func (q *Queries) GetTransfers(ctx context.Context, id uint64) (Transfer, error) {

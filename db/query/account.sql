@@ -1,6 +1,11 @@
--- name: GetAccounts :one
+-- name: GetAccountsForUpdate :many
 SELECT * FROM accounts
-WHERE id = ? LIMIT 1;
+WHERE id IN (?,?)
+FOR UPDATE;
+
+-- name: GetAccount :one
+SELECT * FROM accounts
+WHERE id = ?;
 
 -- name: ListAccounts :many
 SELECT * FROM accounts
@@ -16,3 +21,11 @@ INSERT INTO accounts (
 -- name: DeleteAccounts :exec
 DELETE FROM accounts
 WHERE id = ?;
+
+-- name: UpdateAccount :exec
+UPDATE accounts SET balance = ?
+WHERE id = ?;
+
+-- name: AddAccountBalance :exec
+UPDATE accounts SET balance = balance+sqlc.arg(amount)
+WHERE id = sqlc.arg(id);

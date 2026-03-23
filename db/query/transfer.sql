@@ -1,6 +1,6 @@
 -- name: GetTransfers :one
 SELECT * FROM transfers
-WHERE id = ? LIMIT 1;
+WHERE id = ?;
 
 -- name: ListTransfers :many
 SELECT * FROM transfers

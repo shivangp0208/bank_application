@@ -1,6 +1,6 @@
 -- name: GetEntries :one
 SELECT * FROM entries
-WHERE id = ? LIMIT 1;
+WHERE id = ?;
 
 -- name: ListEntries :many
 SELECT * FROM entries

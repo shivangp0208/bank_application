@@ -53,6 +53,8 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
+var txKey = struct{}{}
+
 // TransferTx performs a money transfer from one account to other.
 // It creates a transfer record, add account entries, and update accounts
 func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
@@ -60,6 +62,41 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 
 	err := store.execTx(ctx, func(q *Queries) error {
 
+		txName := ctx.Value(txKey)
+
+		// earlier the account updation was at bottom but due to that deadlock was occuring as
+		// in mysql the update query in transaction is alreasy blocking which waits for 50sec
+		// till other transaction completes it's updation so due to that i moved up the account
+		// updation logic so that lock does not have to wait that much now
+
+		// checking for accounts status
+		fmt.Println(txName, "update account 1")
+		err := q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID:     arg.FromAccountID,
+			Amount: -arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+		result.FromAccount, err = q.GetAccount(ctx, arg.FromAccountID)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(txName, "update account 2")
+		err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
+			ID:     arg.ToAccountID,
+			Amount: arg.Amount,
+		})
+		if err != nil {
+			return err
+		}
+		result.ToAccount, err = q.GetAccount(ctx, arg.ToAccountID)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(txName, "create transfer")
 		transferRes, err := q.CreateTransfers(ctx, CreateTransfersParams{
 			FromAccountID: arg.FromAccountID,
 			ToAccountID:   arg.ToAccountID,
@@ -68,17 +105,16 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		if err != nil {
 			return err
 		}
-
 		transferId, err := transferRes.LastInsertId()
 		if err != nil {
 			return err
 		}
-
 		result.Transfer, err = q.GetTransfers(ctx, uint64(transferId))
 		if err != nil {
 			return err
 		}
 
+		fmt.Println(txName, "create entry 1")
 		fromEntryRes, err := q.CreateEntries(ctx, CreateEntriesParams{
 			AccountID: arg.FromAccountID,
 			Amount:    -arg.Amount,
@@ -86,17 +122,16 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		if err != nil {
 			return err
 		}
-
 		fromEntryId, err := fromEntryRes.LastInsertId()
 		if err != nil {
 			return err
 		}
-
 		result.FromEntry, err = q.GetEntries(ctx, uint64(fromEntryId))
 		if err != nil {
 			return err
 		}
 
+		fmt.Println(txName, "create entry 2")
 		toEntryRes, err := q.CreateEntries(ctx, CreateEntriesParams{
 			AccountID: arg.ToAccountID,
 			Amount:    arg.Amount,
@@ -104,12 +139,10 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
 		if err != nil {
 			return err
 		}
-
 		toEntryId, err := toEntryRes.LastInsertId()
 		if err != nil {
 			return err
 		}
-
 		result.ToEntry, err = q.GetEntries(ctx, uint64(toEntryId))
 		if err != nil {
 			return err

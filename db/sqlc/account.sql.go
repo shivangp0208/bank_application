@@ -10,6 +10,21 @@ import (
 	"database/sql"
 )
 
+const addAccountBalance = `-- name: AddAccountBalance :exec
+UPDATE accounts SET balance = balance+?
+WHERE id = ?
+`
+
+type AddAccountBalanceParams struct {
+	Amount int64  `db:"amount"`
+	ID     uint64 `db:"id"`
+}
+
+func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalanceParams) error {
+	_, err := q.db.ExecContext(ctx, addAccountBalance, arg.Amount, arg.ID)
+	return err
+}
+
 const createAccounts = `-- name: CreateAccounts :execresult
 INSERT INTO accounts (
   owner, balance, currency
@@ -38,13 +53,13 @@ func (q *Queries) DeleteAccounts(ctx context.Context, id uint64) error {
 	return err
 }
 
-const getAccounts = `-- name: GetAccounts :one
+const getAccount = `-- name: GetAccount :one
 SELECT id, owner, balance, currency, created_at FROM accounts
-WHERE id = ? LIMIT 1
+WHERE id = ?
 `
 
-func (q *Queries) GetAccounts(ctx context.Context, id uint64) (Account, error) {
-	row := q.db.QueryRowContext(ctx, getAccounts, id)
+func (q *Queries) GetAccount(ctx context.Context, id uint64) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getAccount, id)
 	var i Account
 	err := row.Scan(
 		&i.ID,
@@ -54,6 +69,46 @@ func (q *Queries) GetAccounts(ctx context.Context, id uint64) (Account, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getAccountsForUpdate = `-- name: GetAccountsForUpdate :many
+SELECT id, owner, balance, currency, created_at FROM accounts
+WHERE id IN (?,?)
+FOR UPDATE
+`
+
+type GetAccountsForUpdateParams struct {
+	ID   uint64 `db:"id"`
+	ID_2 uint64 `db:"id_2"`
+}
+
+func (q *Queries) GetAccountsForUpdate(ctx context.Context, arg GetAccountsForUpdateParams) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountsForUpdate, arg.ID, arg.ID_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Balance,
+			&i.Currency,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAccounts = `-- name: ListAccounts :many
@@ -88,4 +143,19 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateAccount = `-- name: UpdateAccount :exec
+UPDATE accounts SET balance = ?
+WHERE id = ?
+`
+
+type UpdateAccountParams struct {
+	Balance int64  `db:"balance"`
+	ID      uint64 `db:"id"`
+}
+
+func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) error {
+	_, err := q.db.ExecContext(ctx, updateAccount, arg.Balance, arg.ID)
+	return err
 }
