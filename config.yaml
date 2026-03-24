@@ -1,0 +1,3 @@
+dbSource: shivang:12345678@tcp(localhost:3306)/bank_application?parseTime=true
+dbDriver: mysql
+serverAddress: 0.0.0.0:8080

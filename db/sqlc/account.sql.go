@@ -88,7 +88,7 @@ func (q *Queries) GetAccountsForUpdate(ctx context.Context, arg GetAccountsForUp
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(
@@ -122,7 +122,48 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.Owner,
+			&i.Balance,
+			&i.Currency,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPagedAccounts = `-- name: ListPagedAccounts :many
+SELECT id, owner, balance, currency, created_at FROM accounts
+ORDER BY id
+LIMIT ?
+OFFSET ?
+`
+
+type ListPagedAccountsParams struct {
+	Limit  int32 `db:"limit"`
+	Offset int32 `db:"offset"`
+}
+
+func (q *Queries) ListPagedAccounts(ctx context.Context, arg ListPagedAccountsParams) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, listPagedAccounts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(

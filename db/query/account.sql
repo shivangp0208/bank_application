@@ -11,6 +11,12 @@ WHERE id = ?;
 SELECT * FROM accounts
 ORDER BY id;
 
+-- name: ListPagedAccounts :many
+SELECT * FROM accounts
+ORDER BY id
+LIMIT ?
+OFFSET ?;
+
 -- name: CreateAccounts :execresult
 INSERT INTO accounts (
   owner, balance, currency
