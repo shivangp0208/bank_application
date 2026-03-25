@@ -39,3 +39,7 @@ func generateName(length int) string {
 	}
 	return name.String()
 }
+
+func GenerateRandomID() uint64 {
+	return rGen.Uint64()
+}
