@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -106,42 +107,44 @@ func (s *Server) GetAllAccount(c *gin.Context) {
 	c.JSON(http.StatusOK, accounts)
 }
 
-type UpdateAccountReq struct {
-	ID       uint64 `uri:"id" binding:"required,min=1"`
+type UpdateAccountReqURI struct {
+	ID uint64 `uri:"id" binding:"required,min=1"`
+}
+type UpdateAccountReqJSON struct {
 	Owner    string `json:"owner" binding:"required,min=2"`
 	Balance  int64  `json:"balance" binding:"required,min=0"`
 	Currency string `json:"currency" binding:"required,oneof=INR USD EUR CAD"`
 }
 
 func (s *Server) UpdateAccount(c *gin.Context) {
+	var reqUri UpdateAccountReqURI
+	var reqJson UpdateAccountReqJSON
 
-	var req UpdateAccountReq
-
-	if err := c.ShouldBindUri(req.ID); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+	if err := c.ShouldBindUri(&reqUri); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(errors.New("unable to bind the id from the path uri: "+err.Error())))
 		return
 	}
 
-	if err := c.ShouldBindJSON(req); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+	if err := c.ShouldBindJSON(&reqJson); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(errors.New("unable to bind the json object from request body: "+err.Error())))
 		return
 	}
 
 	arg := db.UpdateAccountParams{
-		ID:       req.ID,
-		Owner:    req.Owner,
-		Balance:  req.Balance,
-		Currency: req.Currency,
+		ID:       reqUri.ID,
+		Owner:    reqJson.Owner,
+		Balance:  reqJson.Balance,
+		Currency: reqJson.Currency,
 	}
 
 	if err := s.store.UpdateAccount(c, arg); err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to update the account detail: "+err.Error())))
 		return
 	}
 
-	updatedAccount, err := s.store.GetAccount(c, req.ID)
+	updatedAccount, err := s.store.GetAccount(c, reqUri.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to fetch the updated account: "+err.Error())))
 		return
 	}
 
@@ -155,7 +158,7 @@ type DeleteAccountReq struct {
 func (s *Server) DeleteAccount(c *gin.Context) {
 	var req DeleteAccountReq
 
-	if err := c.ShouldBindUri(req); err != nil {
+	if err := c.ShouldBindUri(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
