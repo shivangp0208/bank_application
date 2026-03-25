@@ -187,16 +187,23 @@ func (q *Queries) ListPagedAccounts(ctx context.Context, arg ListPagedAccountsPa
 }
 
 const updateAccount = `-- name: UpdateAccount :exec
-UPDATE accounts SET balance = ?
+UPDATE accounts SET owner = ?, balance = ?, currency = ?
 WHERE id = ?
 `
 
 type UpdateAccountParams struct {
-	Balance int64  `db:"balance"`
-	ID      uint64 `db:"id"`
+	Owner    string `db:"owner"`
+	Balance  int64  `db:"balance"`
+	Currency string `db:"currency"`
+	ID       uint64 `db:"id"`
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) error {
-	_, err := q.db.ExecContext(ctx, updateAccount, arg.Balance, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateAccount,
+		arg.Owner,
+		arg.Balance,
+		arg.Currency,
+		arg.ID,
+	)
 	return err
 }

@@ -29,7 +29,7 @@ DELETE FROM accounts
 WHERE id = ?;
 
 -- name: UpdateAccount :exec
-UPDATE accounts SET balance = ?
+UPDATE accounts SET owner = ?, balance = ?, currency = ?
 WHERE id = ?;
 
 -- name: AddAccountBalance :exec
