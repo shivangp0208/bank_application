@@ -1,4 +1,16 @@
 -- =========================
+-- users
+-- =========================
+CREATE TABLE IF NOT EXISTS users (
+  username VARCHAR(255) PRIMARY KEY,
+  hashed_password VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  password_changed_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================
 -- accounts
 -- =========================
 CREATE TABLE IF NOT EXISTS accounts (
@@ -6,7 +18,10 @@ CREATE TABLE IF NOT EXISTS accounts (
   owner VARCHAR(255) NOT NULL,
   balance BIGINT NOT NULL,
   currency VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_owner FOREIGN KEY (owner) REFERENCES users(username),
+  CONSTRAINT owner_currency_key UNIQUE (owner, currency)
 );
 
 CREATE INDEX idx_accounts_owner ON accounts(owner);
@@ -20,7 +35,7 @@ CREATE TABLE IF NOT EXISTS entries (
   amount BIGINT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (account_id) REFERENCES accounts(id)
+  CONSTRAINT fk_account_id FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
 CREATE INDEX idx_entries_account_id ON entries(account_id);
@@ -35,8 +50,8 @@ CREATE TABLE IF NOT EXISTS transfers (
   amount BIGINT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (from_account_id) REFERENCES accounts(id),
-  FOREIGN KEY (to_account_id) REFERENCES accounts(id)
+  CONSTRAINT fk_from_account FOREIGN KEY (from_account_id) REFERENCES accounts(id),
+  CONSTRAINT fk_to_account FOREIGN KEY (to_account_id) REFERENCES accounts(id)
 );
 
 CREATE INDEX idx_transfers_from_account ON transfers(from_account_id);
