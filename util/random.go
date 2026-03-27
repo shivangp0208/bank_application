@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -27,8 +28,8 @@ func generateAmount(min, max int) int {
 	return min + rGen.Intn(max-min+1)
 }
 
-func GenerateRandomName() string {
-	return generateName(8)
+func GenerateRandomName(length int) string {
+	return generateName(length)
 }
 
 func generateName(length int) string {
@@ -41,5 +42,9 @@ func generateName(length int) string {
 }
 
 func GenerateRandomID() uint64 {
-	return rGen.Uint64()
+	return uint64(rGen.Intn(100))
+}
+
+func GenerateRandomEmail() string {
+	return fmt.Sprintf("%s@email.com", GenerateRandomName(6))
 }

@@ -1,10 +1,10 @@
 package util
 
 const (
-	USD = "USD"
-	CAD = "CAD"
-	EUR = "EUR"
-	INR = "INR"
+	USD string = "USD"
+	CAD string = "CAD"
+	EUR string = "EUR"
+	INR string = "INR"
 )
 
 func IsSupportedCurrency(currency string) bool {

@@ -12,7 +12,7 @@ import (
 func TestCreateAccounts(t *testing.T) {
 	// create account test
 	arg := CreateAccountsParams{
-		Owner:    util.GenerateRandomName(),
+		Owner:    util.GenerateRandomName(10),
 		Balance:  util.GenerateRandomAmount(),
 		Currency: util.GenerateRandomCurrency(),
 	}

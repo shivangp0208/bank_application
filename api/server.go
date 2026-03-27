@@ -36,12 +36,18 @@ func (s *Server) SetupRoute() {
 
 	router := gin.Default()
 
-	// defining routes
+	// defining accounts routes
 	router.POST("/api/v1/accounts", s.CreateAccount)
 	router.GET("/api/v1/accounts/:id", s.GetAccountByID)
 	router.GET("/api/v1/accounts", s.GetAllAccount)
 	router.PUT("/api/v1/accounts/:id", s.UpdateAccount)
 	router.DELETE("/api/v1/accounts/:id", s.DeleteAccount)
+
+	// defining transfer routes
+	router.POST("/api/v1/transfer", s.TransferMoney)
+
+	// defining users routes
+	router.POST("/api/v1/users", s.CreateUser)
 
 	s.router = router
 }

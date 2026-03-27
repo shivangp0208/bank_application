@@ -20,7 +20,7 @@ import (
 
 func TestGetAccountByID(t *testing.T) {
 
-	account := randomAccount()
+	account := randomAccount("testUser")
 	testCases := []struct {
 		name      string
 		accountId uint64
@@ -99,10 +99,10 @@ func TestGetAccountByID(t *testing.T) {
 	}
 }
 
-func randomAccount() db.Account {
+func randomAccount(username string) db.Account {
 	return db.Account{
 		ID:        util.GenerateRandomID(),
-		Owner:     util.GenerateRandomName(),
+		Owner:     username,
 		Balance:   util.GenerateRandomAmount(),
 		Currency:  util.GenerateRandomCurrency(),
 		CreatedAt: time.Now().UTC(),
