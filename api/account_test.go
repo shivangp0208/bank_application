@@ -86,7 +86,7 @@ func TestGetAccountByID(t *testing.T) {
 			// GetAccount func in DB is called
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/api/v1/accounts/%d", tc.accountId)

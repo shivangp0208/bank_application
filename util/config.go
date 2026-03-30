@@ -2,15 +2,18 @@ package util
 
 import (
 	"log"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	DBSource           string `mapstructure:"dbSource"`
-	DBDriver           string `mapstructure:"dbDriver"`
-	ServerAddress      string `mapstructure:"serverAddress"`
-	MinSecretKeyLength int    `mapstructure:"minSecretKeyLength"`
+	DBSource            string        `mapstructure:"dbSource"`
+	DBDriver            string        `mapstructure:"dbDriver"`
+	ServerAddress       string        `mapstructure:"serverAddress"`
+	MinSecretKeyLength  int           `mapstructure:"minSecretKeyLength"`
+	TokenSecretKey      string        `mapstructure:"tokenSecretKey"`
+	TokenExpirationTime time.Duration `mapstructure:"tokenExpirationTime"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

@@ -5,17 +5,27 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/token"
+	"github.com/shivangp0208/bank_application/util"
 )
 
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	store      db.Store
+	tokenMaker token.Maker
+	config     *util.Config
+	router     *gin.Engine
 }
 
-func NewServer(store db.Store) *Server {
+func NewServer(store db.Store, config util.Config) (*Server, error) {
+	jwtMaker, err := token.NewJwtMaker(config.TokenSecretKey)
+	if err != nil {
+		return nil, err
+	}
 	// defining a server with sb configuration
 	server := &Server{
-		store: store,
+		config:     &config,
+		store:      store,
+		tokenMaker: jwtMaker,
 	}
 
 	// registering all custom made validators in gin
@@ -27,7 +37,7 @@ func NewServer(store db.Store) *Server {
 	}
 
 	server.SetupRoute()
-	return server
+	return server, nil
 }
 
 // SetupRoute func helps us to setup routest easily and initailize the
@@ -48,6 +58,9 @@ func (s *Server) SetupRoute() {
 
 	// defining users routes
 	router.POST("/api/v1/users", s.CreateUser)
+	router.GET("/api/v1/users/:username", s.GetUser)
+	router.GET("/api/v1/users", s.GetAllUser)
+	router.POST("/api/v1/users/login", s.LoginUser)
 
 	s.router = router
 }

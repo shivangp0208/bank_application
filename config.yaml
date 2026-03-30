@@ -1,4 +1,6 @@
 dbSource: shivang:12345678@tcp(localhost:3306)/bank_application?parseTime=true
 dbDriver: mysql
-serverAddress: 0.0.0.0:8080'
+serverAddress: 0.0.0.0:8080
 minSecretKeyLength: 32
+tokenSecretKey: k9Fv2Xq8LmR7aZp3D1sJw6TnYc4B0uHek9Fv2Xq8LmR7aZp3D1
+tokenExpirationTime: 15m

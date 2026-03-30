@@ -21,15 +21,15 @@ func TestTransferMoney(t *testing.T) {
 
 	user1, _ := randomUser(t)
 	user2, _ := randomUser(t)
-	user3, _ := randomUser(t)
+	// user3, _ := randomUser(t)
 
 	account1 := randomAccount(user1.Username)
 	account2 := randomAccount(user2.Username)
-	account3 := randomAccount(user3.Username)
+	// account3 := randomAccount(user3.Username)
 
 	account1.Currency = util.USD
 	account2.Currency = util.USD
-	account3.Currency = util.EUR
+	// account3.Currency = util.EUR
 
 	testCases := []struct {
 		name          string
@@ -82,7 +82,7 @@ func TestTransferMoney(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
