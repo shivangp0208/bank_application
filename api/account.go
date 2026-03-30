@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/token"
 )
 
 type CreateAccountReq struct {
@@ -22,8 +23,9 @@ func (s *Server) CreateAccount(c *gin.Context) {
 		return
 	}
 
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateAccountsParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Balance:  0,
 		Currency: req.Currency,
 	}
@@ -66,6 +68,13 @@ func (s *Server) GetAccountByID(c *gin.Context) {
 		return
 	}
 
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account doesn't belong to the authenticated user")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
 	c.JSON(http.StatusOK, account)
 }
 
@@ -93,7 +102,9 @@ func (s *Server) GetAllAccount(c *gin.Context) {
 		}
 	}
 
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.ListPagedAccountsParams{
+		Owner:  authPayload.Username,
 		Limit:  int32(req.PageSize),
 		Offset: int32((req.PageNo - 1) * req.PageSize),
 	}
@@ -130,9 +141,23 @@ func (s *Server) UpdateAccount(c *gin.Context) {
 		return
 	}
 
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	account, err := s.store.GetAccount(c, reqUri.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+
+	if authPayload.Username != account.Owner {
+		err := errors.New("account doesn't belong to the authenticated user")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
 	arg := db.UpdateAccountParams{
 		ID:       reqUri.ID,
-		Owner:    reqJson.Owner,
+		Owner:    authPayload.Username,
 		Balance:  reqJson.Balance,
 		Currency: reqJson.Currency,
 	}
@@ -160,6 +185,20 @@ func (s *Server) DeleteAccount(c *gin.Context) {
 
 	if err := c.ShouldBindUri(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	account, err := s.store.GetAccount(c, req.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+
+	if authPayload.Username != account.Owner {
+		err := errors.New("account doesn't belong to the authenticated user")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 

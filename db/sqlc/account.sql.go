@@ -147,18 +147,20 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
 
 const listPagedAccounts = `-- name: ListPagedAccounts :many
 SELECT id, owner, balance, currency, created_at FROM accounts
+WHERE owner = ?
 ORDER BY id
 LIMIT ?
 OFFSET ?
 `
 
 type ListPagedAccountsParams struct {
-	Limit  int32 `db:"limit"`
-	Offset int32 `db:"offset"`
+	Owner  string `db:"owner"`
+	Limit  int32  `db:"limit"`
+	Offset int32  `db:"offset"`
 }
 
 func (q *Queries) ListPagedAccounts(ctx context.Context, arg ListPagedAccountsParams) ([]Account, error) {
-	rows, err := q.db.QueryContext(ctx, listPagedAccounts, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listPagedAccounts, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

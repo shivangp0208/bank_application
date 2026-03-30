@@ -46,21 +46,26 @@ func (s *Server) SetupRoute() {
 
 	router := gin.Default()
 
+	// unauthorized routes
+	router.POST("/api/v1/users", s.CreateUser)
+	router.POST("/api/v1/users/login", s.LoginUser)
+
+	authRouter := router.Group("/").Use(authMiddleware(s.tokenMaker))
+
+	// authorized routes
 	// defining accounts routes
-	router.POST("/api/v1/accounts", s.CreateAccount)
-	router.GET("/api/v1/accounts/:id", s.GetAccountByID)
-	router.GET("/api/v1/accounts", s.GetAllAccount)
-	router.PUT("/api/v1/accounts/:id", s.UpdateAccount)
-	router.DELETE("/api/v1/accounts/:id", s.DeleteAccount)
+	authRouter.POST("/api/v1/accounts", s.CreateAccount)
+	authRouter.GET("/api/v1/accounts/:id", s.GetAccountByID)
+	authRouter.GET("/api/v1/accounts", s.GetAllAccount)
+	authRouter.PUT("/api/v1/accounts/:id", s.UpdateAccount)
+	authRouter.DELETE("/api/v1/accounts/:id", s.DeleteAccount)
 
 	// defining transfer routes
-	router.POST("/api/v1/transfer", s.TransferMoney)
+	authRouter.POST("/api/v1/transfer", s.TransferMoney)
 
 	// defining users routes
-	router.POST("/api/v1/users", s.CreateUser)
-	router.GET("/api/v1/users/:username", s.GetUser)
-	router.GET("/api/v1/users", s.GetAllUser)
-	router.POST("/api/v1/users/login", s.LoginUser)
+	authRouter.GET("/api/v1/users/:username", s.GetUser)
+	authRouter.GET("/api/v1/users", s.GetAllUser)
 
 	s.router = router
 }

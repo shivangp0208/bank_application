@@ -135,7 +135,19 @@ func (s *Server) GetAllUser(c *gin.Context) {
 	if !checkSqlErr(c, err) {
 		return
 	}
-	c.JSON(http.StatusOK, users)
+
+	res := []UserResponse{}
+	for _, user := range users {
+		res = append(res, UserResponse{
+			Username:          user.Username,
+			FullName:          user.FullName,
+			Email:             user.Email,
+			PasswordChangedAt: user.PasswordChangedAt.Time,
+			CreatedAt:         user.CreatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, res)
 }
 
 type LoginUserReq struct {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/token"
 )
 
 type TransferMoneyReq struct {
@@ -23,9 +24,17 @@ func (s *Server) TransferMoney(c *gin.Context) {
 		return
 	}
 
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	fromAccount, err := s.store.GetAccount(c, req.FromAccountID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+
+	if fromAccount.Owner != authPayload.Username {
+		err := errors.New("account doesn't belong to the authenticated user")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 

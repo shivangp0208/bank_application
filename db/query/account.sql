@@ -13,6 +13,7 @@ ORDER BY id;
 
 -- name: ListPagedAccounts :many
 SELECT * FROM accounts
+WHERE owner = ?
 ORDER BY id
 LIMIT ?
 OFFSET ?;
