@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	DBSource      string
-	DBDriver      string
-	ServerAddress string
+	DBSource           string `mapstructure:"dbSource"`
+	DBDriver           string `mapstructure:"dbDriver"`
+	ServerAddress      string `mapstructure:"serverAddress"`
+	MinSecretKeyLength int    `mapstructure:"minSecretKeyLength"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
