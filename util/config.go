@@ -16,6 +16,14 @@ type Config struct {
 	TokenExpirationTime time.Duration `mapstructure:"tokenExpirationTime"`
 }
 
+func GetConfig() Config {
+	config, err := LoadConfig("/home/shivangp0208/GoLang/Project/bank-application")
+	if err != nil {
+		log.Fatalf("unable to load configuration from config file: %v", err)
+	}
+	return config
+}
+
 func LoadConfig(path string) (config Config, err error) {
 
 	viper.AddConfigPath(path)

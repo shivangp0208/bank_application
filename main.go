@@ -13,18 +13,16 @@ import (
 var conn *sql.DB
 var err error
 var config util.Config
+var logger = util.GetLogger()
 
 func init() {
-	config, err = util.LoadConfig("/home/shivangp0208/GoLang/Project/bank-application")
-	if err != nil {
-		log.Fatalf("unable to load configuration from config file: %v", err)
-	}
-
+	config = util.GetConfig()
 	conn, err = sql.Open(config.DBDriver, config.DBSource)
+	logger.Printf("init main: dbDriver: %s and dbSource: %s", config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatalf("unable to open db connection: %v", err)
 	}
-
+	logger.Printf("successfull opening up the db connection")
 }
 
 func main() {

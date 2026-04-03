@@ -2,7 +2,6 @@ package token
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -10,17 +9,13 @@ import (
 )
 
 var config util.Config
-var err error
 
 var ErrInvalidSecretKey error = errors.New("invalid secret key")
 var ErrExpiredToken error = errors.New("invalid token, token is expired")
 var ErrInvalidToken error = errors.New("invalid token")
 
 func init() {
-	config, err = util.LoadConfig("/home/shivangp0208/GoLang/Project/bank-application")
-	if err != nil {
-		log.Fatalf("unable to load configuration from config file: %v", err)
-	}
+	config = util.GetConfig()
 }
 
 type JWTMaker struct {
