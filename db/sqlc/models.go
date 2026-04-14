@@ -24,6 +24,17 @@ type Entry struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+type Session struct {
+	ID           string    `db:"id"`
+	Username     string    `db:"username"`
+	RefreshToken string    `db:"refresh_token"`
+	UserAgent    string    `db:"user_agent"`
+	ClientIp     string    `db:"client_ip"`
+	IsBlocked    bool      `db:"is_blocked"`
+	ExpiresAt    time.Time `db:"expires_at"`
+	CreatedAt    time.Time `db:"created_at"`
+}
+
 type Transfer struct {
 	ID            uint64    `db:"id"`
 	FromAccountID uint64    `db:"from_account_id"`

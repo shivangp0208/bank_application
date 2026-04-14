@@ -57,3 +57,19 @@ CREATE TABLE IF NOT EXISTS transfers (
 CREATE INDEX idx_transfers_from_account ON transfers(from_account_id);
 CREATE INDEX idx_transfers_to_account ON transfers(to_account_id);
 CREATE INDEX idx_transfers_from_to ON transfers(from_account_id, to_account_id);
+
+-- =========================
+-- transfers
+-- =========================
+CREATE TABLE IF NOT EXISTS sessions (
+  id CHAR(36) PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  refresh_token TEXT NOT NULL,
+  user_agent VARCHAR(255) NOT NULL,
+  client_ip VARCHAR(255) NOT NULL,
+  is_blocked BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_username FOREIGN KEY (username) REFERENCES users(username)
+);

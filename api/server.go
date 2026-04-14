@@ -17,7 +17,7 @@ type Server struct {
 }
 
 func NewServer(store db.Store, config util.Config) (*Server, error) {
-	jwtMaker, err := token.NewJwtMaker(config.TokenSecretKey)
+	jwtMaker, err := token.NewJwtMaker(config.AccessTokenSecretKey)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +49,7 @@ func (s *Server) SetupRoute() {
 	// unauthorized routes
 	router.POST("/api/v1/users", s.CreateUser)
 	router.POST("/api/v1/users/login", s.LoginUser)
+	router.POST("/api/v1/token/renew", s.RenewUserSession)
 
 	authRouter := router.Group("/").Use(authMiddleware(s.tokenMaker))
 

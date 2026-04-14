@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	DBSource            string        `mapstructure:"dbSource"`
-	DBDriver            string        `mapstructure:"dbDriver"`
-	ServerAddress       string        `mapstructure:"serverAddress"`
-	MinSecretKeyLength  int           `mapstructure:"minSecretKeyLength"`
-	TokenSecretKey      string        `mapstructure:"tokenSecretKey"`
-	TokenExpirationTime time.Duration `mapstructure:"tokenExpirationTime"`
+	DBSource                   string        `mapstructure:"dbSource"`
+	DBDriver                   string        `mapstructure:"dbDriver"`
+	ServerAddress              string        `mapstructure:"serverAddress"`
+	MinSecretKeyLength         int           `mapstructure:"minSecretKeyLength"`
+	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`
+	AccessTokenExpirationTime  time.Duration `mapstructure:"accessTokenExpirationTime"`
+	RefreshTokenExpirationTime time.Duration `mapstructure:"refreshTokenExpirationTime"`
 }
 
 func GetConfig() Config {

@@ -13,8 +13,8 @@ import (
 
 func newTestServer(t *testing.T, store db.Store) *Server {
 	config := util.Config{
-		TokenSecretKey:      util.GenerateRandomName(32),
-		TokenExpirationTime: time.Minute,
+		AccessTokenSecretKey:      util.GenerateRandomName(32),
+		AccessTokenExpirationTime: time.Minute,
 	}
 	server, err := NewServer(store, config)
 	require.NoError(t, err)
