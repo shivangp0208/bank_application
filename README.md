@@ -29,4 +29,27 @@ grpc is a remote procedure call framework which helps to communicate between dif
     - Seperate proxy server: both unary and streaming
 - Write code once, serve both gRPC and HTTP req
 
-    So when we write gRPC protobuf code it generates a gateway and grpc which make it to handle both grpc and http req at once, so when a http req came it goes towards the gateway and gateway convert this in grpc and sends back the required json response, while request comming to grpc it will be handle as per grpc request and binary response 
+    So when we write gRPC protobuf code it generates a gateway and grpc which make it to handle both grpc and http req at once, so when a http req came it goes towards the gateway and gateway convert this in grpc and sends back the required json response, while request comming to grpc it will be handle as per grpc request and binary response \
+
+The concepts of grpc came, when we use the REST api we uses the HTTP req to call the server to get a HTTP res, and for that we need to define the path or url to ask for response so to remove this and call the methods directly with their name the RPC(Remote Call Procedure) was introduced which calls the method directly with their name so no need for the urls. But behind the scene while calling the api using RPC the system uderhood uses the HTTP req and res, so it just creates an abstraction from which we just need to call the method name of the server like createUser(), loginUser().
+
+Now this RPC can be implemented in many way like JSON RPC which sends and receive the req and res in JSON format, and from this google invented the gRPC which is a RPC framework, this was introduced to increase the performance in the req handling, as the grpc uses the protobuf which is a protocol buffers i.e language agnostic serialization framework.
+
+As we know that the server auto serialize and deserialize the incoming req and outgoing res which means any JSON req comming to a server it first get serialize into their environment like for Java we use POJO, for GoLang we use structs, same for deserialization, and this JSON req and res took so much size over network which decrease the performance also it took a particular time for serailization and desrialization.
+
+To solve this protobufs were intoduced in gRPC which uses the binary format for data transfers. 
+> JSON data format:
+```
+{
+    "name":"name",
+    "email":"email" 
+}
+```
+> Protobuf data format:
+```
+message User{
+    string name = 1;
+    string email = 2;
+}
+```
+So protobuf uses the integer for keys which removes the repetation of keys which happens in JSON for a list of data which acquire a big size over network.

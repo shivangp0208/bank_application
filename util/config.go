@@ -10,7 +10,8 @@ import (
 type Config struct {
 	DBSource                   string        `mapstructure:"dbSource"`
 	DBDriver                   string        `mapstructure:"dbDriver"`
-	ServerAddress              string        `mapstructure:"serverAddress"`
+	HTTPServerAddress          string        `mapstructure:"httpServerAddress"`
+	GRPCServerAddress          string        `mapstructure:"grpcServerAddress"`
 	MinSecretKeyLength         int           `mapstructure:"minSecretKeyLength"`
 	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`
 	AccessTokenExpirationTime  time.Duration `mapstructure:"accessTokenExpirationTime"`
