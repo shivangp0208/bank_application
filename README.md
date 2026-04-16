@@ -22,8 +22,7 @@ grpc is a remote procedure call framework which helps to communicate between dif
 3. Server streaming gRPC: In this client will send a single req on which server will responds with stream of response
 4. Biderctional streaming gRPC: In this client will send a stream of req and server will responds with providing stream of response
 ### gRPC Gateway
-- gRPC gateway serves both GRPC and HTTP requests at once.
-- it is a plugin of protobuf compiler that generates proxy codes from protobuf.
+- gRPC gateway is a reverse proxy which translates the incoming HTTP req to gRPC req. It is a plugin of protobuf compiler that generates proxy codes from protobuf.
 - It translates HTTP JSON calls to gRPC.
     - In process translation: only for unary
     - Seperate proxy server: both unary and streaming
