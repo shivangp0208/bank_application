@@ -10,7 +10,6 @@ import (
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -75,26 +74,13 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 		return nil, status.Errorf(codes.Internal, "unable to generate the refresh token %v", err)
 	}
 
-	var userAgent, clientIP string
-	if md, ok := metadata.FromIncomingContext(c); ok {
-		ua := md.Get("user-agent")
-		cip := md.Get("client-ip")
-		if len(ua) > 0 {
-			userAgent = ua[0]
-			logger.Printf("user agent provided by client side %s", userAgent)
-		}
-		if len(cip) > 0 {
-			clientIP = cip[0]
-			logger.Printf("client ip provided by client side %s", clientIP)
-		}
-	}
-
+	md := s.extractMetadata(c)
 	_, err = s.store.CreateSession(c, db.CreateSessionParams{
 		ID:           refreshPayload.ID.String(),
 		Username:     accessPayload.Username,
 		RefreshToken: refreshToken,
-		UserAgent:    userAgent,
-		ClientIp:     clientIP,
+		UserAgent:    md.UserAgent,
+		ClientIp:     md.ClientIP,
 		IsBlocked:    false,
 		ExpiresAt:    refreshPayload.ExpiredAt,
 	})
