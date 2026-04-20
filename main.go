@@ -36,8 +36,8 @@ func init() {
 func main() {
 	store := db.NewStore(conn)
 
-	// go startGRPCSever(store)
-	// go startGRPCGatewaySever(store)
+	go startGRPCSever(store)
+	go startGRPCGatewaySever(store)
 	startGinSever(store)
 }
 

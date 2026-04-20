@@ -72,6 +72,29 @@ func ValidateCreateUserReq(req *pb.CreateUserRequest) (violations []*errdetails.
 	return violations
 }
 
+func ValidateUpdateUserReq(req *pb.UpdateUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+
+	if err := ValidateUsername(req.Username); err != nil {
+		violations = append(violations, ValidateField(req.Username, err))
+	}
+	if req.Email != nil && len(*req.Email) > 0 {
+		if err := ValidateEmail(*req.Email); err != nil {
+			violations = append(violations, ValidateField(*req.Email, err))
+		}
+	}
+	if req.FullName != nil && len(*req.FullName) > 0 {
+		if err := ValidateFullName(*req.FullName); err != nil {
+			violations = append(violations, ValidateField(*req.FullName, err))
+		}
+	}
+	if req.Password != nil && len(*req.Password) > 0 {
+		if err := ValidatePassword(*req.Password); err != nil {
+			violations = append(violations, ValidateField(*req.Password, err))
+		}
+	}
+	return violations
+}
+
 func ValidateLoginUserReq(req *pb.LoginUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
 	if err := ValidateUsername(req.Username); err != nil {
 		violations = append(violations, ValidateField(req.Username, err))

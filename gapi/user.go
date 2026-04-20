@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
@@ -113,6 +114,73 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 		AccessTokenExpiresAt:  timestamppb.New(accessPayload.ExpiredAt),
 		RefreshToken:          refreshToken,
 		RefreshTokenExpiresAt: timestamppb.New(refreshPayload.ExpiredAt),
+	}
+
+	return &res, nil
+}
+
+func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
+
+	if violations := validator.ValidateUpdateUserReq(req); violations != nil {
+		logger.Printf("validation failed for input arguments for update user req")
+		return nil, validator.InvalidArgumentError(violations)
+	}
+	logger.Printf("validation passed for all input arguments for update user req")
+
+	arg := db.UpdateUserParams{
+		Username: req.Username,
+	}
+
+	if req.FullName != nil {
+		arg.FullName = sql.NullString{
+			String: *req.FullName,
+			Valid:  len(*req.FullName) > 0,
+		}
+	}
+
+	if req.Email != nil {
+		arg.Email = sql.NullString{
+			String: *req.Email,
+			Valid:  len(*req.Email) > 0,
+		}
+	}
+
+	if req.Password != nil && len(*req.Password) > 0 {
+		pass, err := util.GenerateHashPassword(*req.Password)
+		if err != nil {
+			logger.Printf("unable to generate the hash password for %s", *req.Password)
+			return nil, status.Errorf(codes.Internal, "unable to generate the hash password for %s", *req.Password)
+		}
+		logger.Printf("successfully generated the hashed password %v", arg.HashedPassword.String)
+
+		arg.HashedPassword = sql.NullString{
+			String: pass,
+			Valid:  true,
+		}
+		arg.PasswordChangedAt = sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		}
+	}
+
+	err := s.store.UpdateUser(ctx, arg)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to update user: %v", err.Error())
+	}
+
+	updatedUser, err := s.store.GetUser(ctx, req.Username)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to get the updated user: %v", err.Error())
+	}
+
+	res := pb.UpdateUserResponse{
+		User: &pb.User{
+			Username:          updatedUser.Username,
+			FullName:          updatedUser.FullName,
+			Email:             updatedUser.Email,
+			PasswordChangedAt: timestamppb.New(updatedUser.PasswordChangedAt.Time),
+			CreatedAt:         timestamppb.New(updatedUser.CreatedAt),
+		},
 	}
 
 	return &res, nil
