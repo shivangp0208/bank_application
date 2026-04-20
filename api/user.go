@@ -13,6 +13,8 @@ import (
 	"github.com/shivangp0208/bank_application/util"
 )
 
+var logger = util.GetLogger()
+
 type CreateUserReq struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -77,7 +79,7 @@ func (s *Server) CreateUser(c *gin.Context) {
 }
 
 type GetUserReq struct {
-	username string `uri:"id" binding:"required,alphanum"`
+	username string `uri:"username" binding:"required,alphanum"`
 }
 
 func (s *Server) GetUser(c *gin.Context) {
@@ -226,6 +228,83 @@ func (s *Server) LoginUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, res)
+}
+
+type UpdateUserBodyReq struct {
+	Password string `json:"password" binding:"omitempty,min=6"`
+	FullName string `json:"full_name" binding:"omitempty"`
+	Email    string `json:"email" binding:"omitempty,email"`
+}
+
+type UpdateUserURLReq struct {
+	Username string `uri:"username" binding:"required,alphanum"`
+}
+
+func (s *Server) UpdateUser(c *gin.Context) {
+	logger.Println("UpdateUser: PATCH req for updating user")
+
+	var bodyReq UpdateUserBodyReq
+	var urlReq UpdateUserURLReq
+
+	if err := c.ShouldBindJSON(&bodyReq); err != nil {
+		logger.Println("UpdateUser: unable to validate the JSON body req")
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	if err := c.ShouldBindUri(&urlReq); err != nil {
+		logger.Println("UpdateUser: unable to validate the URL req")
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	logger.Println("UpdateUser: successfully validated json body req and url")
+
+	arg := db.UpdateUserParams{
+		FullName: sql.NullString{
+			String: bodyReq.FullName,
+			Valid:  len(bodyReq.FullName) > 0,
+		},
+		Email: sql.NullString{
+			String: bodyReq.Email,
+			Valid:  len(bodyReq.Email) > 0,
+		},
+		Username: urlReq.Username,
+	}
+
+	if len(bodyReq.Password) > 0 {
+		pass, err := util.GenerateHashPassword(bodyReq.Password)
+		if err != nil {
+			logger.Printf("UpdateUser: unable to generate the hashed password for given pass %s", bodyReq.Password)
+			c.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		logger.Printf("UpdateUser: success generating the hashed password %v", arg.HashedPassword.String)
+
+		arg.HashedPassword = sql.NullString{
+			String: pass,
+			Valid:  true,
+		}
+		arg.PasswordChangedAt = sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		}
+	}
+
+	if err := s.store.UpdateUser(c, arg); err != nil {
+		logger.Printf("UpdateUser: unable to store the updated user in db")
+		if checkSqlErr(c, err) {
+			return
+		}
+	}
+	logger.Printf("UpdateUser: successfully stored the updated user %v", arg)
+
+	updatedUser, err := s.store.GetUser(c, urlReq.Username)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+	logger.Printf("UpdateUser: successfully fetched the updated user %v", updatedUser)
+
+	c.JSON(http.StatusOK, updatedUser)
 }
 
 func checkSqlErr(c *gin.Context, err error) bool {

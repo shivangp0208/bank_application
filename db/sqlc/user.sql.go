@@ -139,3 +139,28 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	}
 	return items, nil
 }
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users 
+SET full_name = COALESCE(?, full_name), hashed_password = COALESCE(?, hashed_password), email = COALESCE(?, email), password_changed_at = COALESCE(?, password_changed_at)
+WHERE username = ?
+`
+
+type UpdateUserParams struct {
+	FullName          sql.NullString `db:"full_name"`
+	HashedPassword    sql.NullString `db:"hashed_password"`
+	Email             sql.NullString `db:"email"`
+	PasswordChangedAt sql.NullTime   `db:"password_changed_at"`
+	Username          string         `db:"username"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.ExecContext(ctx, updateUser,
+		arg.FullName,
+		arg.HashedPassword,
+		arg.Email,
+		arg.PasswordChangedAt,
+		arg.Username,
+	)
+	return err
+}

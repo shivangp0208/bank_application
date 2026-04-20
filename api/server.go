@@ -54,6 +54,8 @@ func (s *Server) SetupRoute() {
 	authRouter := router.Group("/").Use(authMiddleware(s.tokenMaker))
 
 	// authorized routes
+	authRouter.PATCH("/api/v1/users/:username", s.UpdateUser)
+
 	// defining accounts routes
 	authRouter.POST("/api/v1/accounts", s.CreateAccount)
 	authRouter.GET("/api/v1/accounts/:id", s.GetAccountByID)

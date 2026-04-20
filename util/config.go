@@ -10,7 +10,8 @@ import (
 type Config struct {
 	DBSource                   string        `mapstructure:"dbSource"`
 	DBDriver                   string        `mapstructure:"dbDriver"`
-	HTTPServerAddress          string        `mapstructure:"httpServerAddress"`
+	GRPCGatewayServerAddress   string        `mapstructure:"grpcGatewayServerAddress"`
+	GinHTTPServerAddress       string        `mapstructure:"ginHttpServerAddress"`
 	GRPCServerAddress          string        `mapstructure:"grpcServerAddress"`
 	MinSecretKeyLength         int           `mapstructure:"minSecretKeyLength"`
 	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`

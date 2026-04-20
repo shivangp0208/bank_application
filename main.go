@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/shivangp0208/bank_application/api"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/gapi"
 	"github.com/shivangp0208/bank_application/pb"
@@ -35,23 +36,23 @@ func init() {
 func main() {
 	store := db.NewStore(conn)
 
-	go startGRPCSever(store)
-	// startGinSever(store)
-	startGRPCGatewaySever(store)
+	// go startGRPCSever(store)
+	// go startGRPCGatewaySever(store)
+	startGinSever(store)
 }
 
-// func startGinSever(store db.Store) {
-// 	server, err := api.NewServer(store, config)
-// 	if err != nil {
-// 		logger.Fatalf("unable to create Gin server due to err %v", err)
-// 	}
+func startGinSever(store db.Store) {
+	server, err := api.NewServer(store, config)
+	if err != nil {
+		logger.Fatalf("unable to create Gin server due to err %v", err)
+	}
 
-// 	err = server.Start(config.HTTPServerAddress)
-// 	logger.Printf("Gin server listnening on address %s", config.HTTPServerAddress)
-// 	if err != nil {
-// 		logger.Fatalf("unable to start the Gin server with address %s due to err %v", config.HTTPServerAddress, err)
-// 	}
-// }
+	err = server.Start(config.GinHTTPServerAddress)
+	logger.Printf("Gin server listnening on address %s", config.GinHTTPServerAddress)
+	if err != nil {
+		logger.Fatalf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err)
+	}
+}
 
 func startGRPCSever(store db.Store) {
 
@@ -86,6 +87,7 @@ func startGRPCGatewaySever(store db.Store) {
 		logger.Fatalf("unable to create the grpc gateway server due to %v", err)
 	}
 
+	// this is a code snippet provided by grpc gateway to make the json format to snake case
 	jsonOption := runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
 		MarshalOptions: protojson.MarshalOptions{
 			UseProtoNames: true,
@@ -114,13 +116,13 @@ func startGRPCGatewaySever(store db.Store) {
 	mux.Handle("/api/swagger/ui", http.StripPrefix("/swagger/", swaggerHandler))
 
 	// listen on a tcp port to handle grpc req
-	lis, err := net.Listen("tcp", config.HTTPServerAddress)
+	lis, err := net.Listen("tcp", config.GRPCGatewayServerAddress)
 	if err != nil {
 		logger.Fatalf("unable to create net listner due to err %v", err)
 	}
 
-	logger.Printf("grpc gateway server listnening on address %s", config.HTTPServerAddress)
+	logger.Printf("grpc gateway server listnening on address %s", config.GRPCGatewayServerAddress)
 	if err := http.Serve(lis, mux); err != nil {
-		logger.Fatalf("unable to start the grpc gateway server with address %s due to err %v", config.HTTPServerAddress, err)
+		logger.Fatalf("unable to start the grpc gateway server with address %s due to err %v", config.GRPCGatewayServerAddress, err)
 	}
 }

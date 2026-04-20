@@ -20,10 +20,10 @@ var logger = util.GetLogger()
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
-		logger.Printf("validation failed for input arguments")
+		logger.Printf("validation failed for input arguments for create user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Printf("validation passed for all input arguments")
+	logger.Printf("validation passed for all input arguments for create user req")
 
 	userPass, err := util.GenerateHashPassword(req.Password)
 	if err != nil {
@@ -63,10 +63,10 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
 
 	if violations := validator.ValidateLoginUserReq(req); violations != nil {
-		logger.Printf("validation failed for input arguments")
+		logger.Printf("validation failed for input arguments for login user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Printf("validation passed for all input arguments")
+	logger.Printf("validation passed for all input arguments for login user req")
 
 	user, err := s.store.GetUser(c, req.Username)
 	if ok, err := checkSqlErr(err); !ok {
