@@ -110,13 +110,16 @@ func startGRPCGatewaySever(store db.Store) {
 	mux := http.NewServeMux()
 	mux.Handle("/", gatewayMux)
 
+	swaggerHandler := http.FileServer(http.Dir("doc/swagger"))
+	mux.Handle("/api/swagger/ui", http.StripPrefix("/swagger/", swaggerHandler))
+
 	// listen on a tcp port to handle grpc req
 	lis, err := net.Listen("tcp", config.HTTPServerAddress)
 	if err != nil {
 		logger.Fatalf("unable to create net listner due to err %v", err)
 	}
 
-	logger.Printf("grpc server listnening on address %s", config.HTTPServerAddress)
+	logger.Printf("grpc gateway server listnening on address %s", config.HTTPServerAddress)
 	if err := http.Serve(lis, mux); err != nil {
 		logger.Fatalf("unable to start the grpc gateway server with address %s due to err %v", config.HTTPServerAddress, err)
 	}

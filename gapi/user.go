@@ -9,6 +9,7 @@ import (
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
+	"github.com/shivangp0208/bank_application/util/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -17,6 +18,12 @@ import (
 var logger = util.GetLogger()
 
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+
+	if violations := validator.ValidateCreateUserReq(req); violations != nil {
+		logger.Printf("validation failed for input arguments")
+		return nil, validator.InvalidArgumentError(violations)
+	}
+	logger.Printf("validation passed for all input arguments")
 
 	userPass, err := util.GenerateHashPassword(req.Password)
 	if err != nil {
@@ -54,6 +61,12 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 }
 
 func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
+
+	if violations := validator.ValidateLoginUserReq(req); violations != nil {
+		logger.Printf("validation failed for input arguments")
+		return nil, validator.InvalidArgumentError(violations)
+	}
+	logger.Printf("validation passed for all input arguments")
 
 	user, err := s.store.GetUser(c, req.Username)
 	if ok, err := checkSqlErr(err); !ok {
