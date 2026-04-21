@@ -121,6 +121,16 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 
 func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
 
+	payload, err := s.authorizeUser(ctx)
+	if err != nil {
+		logger.Printf("authorization of user failed with req %v err %v", req, err)
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	if payload.Username != req.Username {
+		return nil, status.Errorf(codes.Unauthenticated, "invalid token, username mismatch in token %s and req %s", payload.Username, req.Username)
+	}
+
 	if violations := validator.ValidateUpdateUserReq(req); violations != nil {
 		logger.Printf("validation failed for input arguments for update user req")
 		return nil, validator.InvalidArgumentError(violations)
@@ -163,7 +173,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 		}
 	}
 
-	err := s.store.UpdateUser(ctx, arg)
+	err = s.store.UpdateUser(ctx, arg)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to update user: %v", err.Error())
 	}

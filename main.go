@@ -64,6 +64,8 @@ func startGRPCSever(store db.Store) {
 	// creating a new grpc server instance
 	grpcServer := grpc.NewServer()
 
+	// grpc.UnaryInterceptor()
+
 	// registering the grpc server by giving an grpc server instance and a server instance conatining all api's
 	pb.RegisterSimpleBankServer(grpcServer, server)
 	reflection.Register(grpcServer)
