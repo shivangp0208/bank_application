@@ -21,10 +21,10 @@ var logger = util.GetLogger()
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
-		logger.Printf("validation failed for input arguments for create user req")
+		logger.Info().Msgf("validation failed for input arguments for create user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Printf("validation passed for all input arguments for create user req")
+	logger.Info().Msgf("validation passed for all input arguments for create user req")
 
 	userPass, err := util.GenerateHashPassword(req.Password)
 	if err != nil {
@@ -64,10 +64,10 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
 
 	if violations := validator.ValidateLoginUserReq(req); violations != nil {
-		logger.Printf("validation failed for input arguments for login user req")
+		logger.Info().Msgf("validation failed for input arguments for login user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Printf("validation passed for all input arguments for login user req")
+	logger.Info().Msgf("validation passed for all input arguments for login user req")
 
 	user, err := s.store.GetUser(c, req.Username)
 	if ok, err := checkSqlErr(err); !ok {
@@ -123,7 +123,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
-		logger.Printf("authorization of user failed with req %v err %v", req, err)
+		logger.Info().Msgf("authorization of user failed with req %v err %v", req, err)
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
@@ -132,10 +132,10 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}
 
 	if violations := validator.ValidateUpdateUserReq(req); violations != nil {
-		logger.Printf("validation failed for input arguments for update user req")
+		logger.Info().Msgf("validation failed for input arguments for update user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Printf("validation passed for all input arguments for update user req")
+	logger.Info().Msgf("validation passed for all input arguments for update user req")
 
 	arg := db.UpdateUserParams{
 		Username: req.Username,
@@ -158,10 +158,10 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	if req.Password != nil && len(*req.Password) > 0 {
 		pass, err := util.GenerateHashPassword(*req.Password)
 		if err != nil {
-			logger.Printf("unable to generate the hash password for %s", *req.Password)
+			logger.Info().Msgf("unable to generate the hash password for %s", *req.Password)
 			return nil, status.Errorf(codes.Internal, "unable to generate the hash password for %s", *req.Password)
 		}
-		logger.Printf("successfully generated the hashed password %v", arg.HashedPassword.String)
+		logger.Info().Msgf("successfully generated the hashed password %v", arg.HashedPassword.String)
 
 		arg.HashedPassword = sql.NullString{
 			String: pass,

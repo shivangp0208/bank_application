@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -26,11 +27,11 @@ var logger = util.GetLogger()
 func init() {
 	config = util.GetConfig()
 	conn, err = sql.Open(config.DBDriver, config.DBSource)
-	logger.Printf("init main: dbDriver: %s and dbSource: %s", config.DBDriver, config.DBSource)
+	logger.Info().Msgf("init main: dbDriver: %s and dbSource: %s", config.DBDriver, config.DBSource)
 	if err != nil {
-		logger.Fatalf("unable to open db connection: %v", err)
+		logger.Err(fmt.Errorf("unable to open db connection: %v", err))
 	}
-	logger.Printf("successfull opening up the db connection")
+	logger.Info().Msgf("successfull opening up the db connection")
 }
 
 func main() {
@@ -44,13 +45,13 @@ func main() {
 func startGinSever(store db.Store) {
 	server, err := api.NewServer(store, config)
 	if err != nil {
-		logger.Fatalf("unable to create Gin server due to err %v", err)
+		logger.Err(fmt.Errorf("unable to create Gin server due to err %v", err))
 	}
 
 	err = server.Start(config.GinHTTPServerAddress)
-	logger.Printf("Gin server listnening on address %s", config.GinHTTPServerAddress)
+	logger.Info().Msgf("Gin server listnening on address %s", config.GinHTTPServerAddress)
 	if err != nil {
-		logger.Fatalf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err)
+		logger.Err(fmt.Errorf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err))
 	}
 }
 
@@ -58,13 +59,12 @@ func startGRPCSever(store db.Store) {
 
 	server, err := gapi.NewServer(store, config)
 	if err != nil {
-		logger.Fatalf("unable to create the grpc server due to %v", err)
+		logger.Err(fmt.Errorf("unable to create the grpc server due to %v", err))
 	}
 
 	// creating a new grpc server instance
-	grpcServer := grpc.NewServer()
-
-	// grpc.UnaryInterceptor()
+	grpcLogger := grpc.UnaryInterceptor(util.GRPCLoggerInterceptor)
+	grpcServer := grpc.NewServer(grpcLogger)
 
 	// registering the grpc server by giving an grpc server instance and a server instance conatining all api's
 	pb.RegisterSimpleBankServer(grpcServer, server)
@@ -73,12 +73,12 @@ func startGRPCSever(store db.Store) {
 	// listen on a tcp port to handle grpc req
 	lis, err := net.Listen("tcp", config.GRPCServerAddress)
 	if err != nil {
-		logger.Fatalf("unable to create grpc listner due to err %v", err)
+		logger.Err(fmt.Errorf("unable to create grpc listner due to err %v", err))
 	}
 
-	logger.Printf("grpc server listnening on address %s", config.GRPCServerAddress)
+	logger.Info().Msgf("grpc server listnening on address %s", config.GRPCServerAddress)
 	if err := grpcServer.Serve(lis); err != nil {
-		logger.Fatalf("unable to start the grpc server with address %s due to err %v", config.GRPCServerAddress, err)
+		logger.Err(fmt.Errorf("unable to start the grpc server with address %s due to err %v", config.GRPCServerAddress, err))
 	}
 }
 
@@ -86,7 +86,7 @@ func startGRPCGatewaySever(store db.Store) {
 
 	server, err := gapi.NewServer(store, config)
 	if err != nil {
-		logger.Fatalf("unable to create the grpc gateway server due to %v", err)
+		logger.Err(fmt.Errorf("unable to create the grpc gateway server due to %v", err))
 	}
 
 	// this is a code snippet provided by grpc gateway to make the json format to snake case
@@ -108,7 +108,7 @@ func startGRPCGatewaySever(store db.Store) {
 	// registering the gateway handler to the grpc server
 	err = pb.RegisterSimpleBankHandlerServer(ctx, gatewayMux, server)
 	if err != nil {
-		logger.Fatalf("unable to register the server to grpc gateway handler %v", err)
+		logger.Err(fmt.Errorf("unable to register the server to grpc gateway handler %v", err))
 	}
 
 	mux := http.NewServeMux()
@@ -120,11 +120,12 @@ func startGRPCGatewaySever(store db.Store) {
 	// listen on a tcp port to handle grpc req
 	lis, err := net.Listen("tcp", config.GRPCGatewayServerAddress)
 	if err != nil {
-		logger.Fatalf("unable to create net listner due to err %v", err)
+		logger.Err(fmt.Errorf("unable to create net listner due to err %v", err))
 	}
 
-	logger.Printf("grpc gateway server listnening on address %s", config.GRPCGatewayServerAddress)
-	if err := http.Serve(lis, mux); err != nil {
-		logger.Fatalf("unable to start the grpc gateway server with address %s due to err %v", config.GRPCGatewayServerAddress, err)
+	handler := util.HTTPLogger(mux)
+	logger.Info().Msgf("grpc gateway server listnening on address %s", config.GRPCGatewayServerAddress)
+	if err := http.Serve(lis, handler); err != nil {
+		logger.Err(fmt.Errorf("unable to start the grpc gateway server with address %s due to err %v", config.GRPCGatewayServerAddress, err))
 	}
 }

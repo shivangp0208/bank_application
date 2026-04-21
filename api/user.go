@@ -273,11 +273,11 @@ func (s *Server) UpdateUser(c *gin.Context) {
 	if len(bodyReq.Password) > 0 {
 		pass, err := util.GenerateHashPassword(bodyReq.Password)
 		if err != nil {
-			logger.Printf("UpdateUser: unable to generate the hashed password for given pass %s", bodyReq.Password)
+			logger.Info().Msgf("UpdateUser: unable to generate the hashed password for given pass %s", bodyReq.Password)
 			c.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
 		}
-		logger.Printf("UpdateUser: success generating the hashed password %v", arg.HashedPassword.String)
+		logger.Info().Msgf("UpdateUser: success generating the hashed password %v", arg.HashedPassword.String)
 
 		arg.HashedPassword = sql.NullString{
 			String: pass,
@@ -290,19 +290,19 @@ func (s *Server) UpdateUser(c *gin.Context) {
 	}
 
 	if err := s.store.UpdateUser(c, arg); err != nil {
-		logger.Printf("UpdateUser: unable to store the updated user in db")
+		logger.Info().Msgf("UpdateUser: unable to store the updated user in db")
 		if checkSqlErr(c, err) {
 			return
 		}
 	}
-	logger.Printf("UpdateUser: successfully stored the updated user %v", arg)
+	logger.Info().Msgf("UpdateUser: successfully stored the updated user %v", arg)
 
 	updatedUser, err := s.store.GetUser(c, urlReq.Username)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
-	logger.Printf("UpdateUser: successfully fetched the updated user %v", updatedUser)
+	logger.Info().Msgf("UpdateUser: successfully fetched the updated user %v", updatedUser)
 
 	c.JSON(http.StatusOK, updatedUser)
 }
