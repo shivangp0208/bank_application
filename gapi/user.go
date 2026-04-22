@@ -47,6 +47,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 
 			opts := []asynq.Option{
 				asynq.MaxRetry(5),
+				// There is a very big imp of this delay in this task, as the create user task is wrapped inside a transaction with a execTx func so in that first the db call is being made but the user data is still not stored as it will be stored only after committing the transaction, so assume that this execTx took too long to commit the transaction but was able to run the func inside it quickly then if there will be no delay then the process email will throw the error user not found as at that timr the user data is not stored in the db
 				asynq.ProcessIn(10 * time.Second),
 				asynq.Queue(worker.CriticalQueue),
 			}

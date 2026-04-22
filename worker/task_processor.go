@@ -28,6 +28,9 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskPr
 			CriticalQueue: 10,
 			DefaultQueue:  5,
 		},
+		ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
+			logger.Error().Str("task_type", task.Type()).Str("task_payload", string(task.Payload())).Msgf("unable to send the verification email %v", err)
+		}),
 	})
 
 	return &RedisTaskProcessor{
