@@ -7,7 +7,7 @@ import (
 )
 
 type TaskProducer interface {
-	ProduceSendVerificationEmail(ctx context.Context, username string, payload *EmailDeliveryPayload, opts ...asynq.Option) error
+	ProduceSendVerificationEmail(ctx context.Context, payload *EmailDeliveryPayload, opts ...asynq.Option) error
 }
 
 type RedisTaskProducer struct {

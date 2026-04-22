@@ -9,11 +9,13 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/hibiken/asynq"
 	"github.com/shivangp0208/bank_application/api"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/gapi"
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
+	"github.com/shivangp0208/bank_application/worker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -37,9 +39,25 @@ func init() {
 func main() {
 	store := db.NewStore(conn)
 
-	go startGRPCSever(store)
-	go startGRPCGatewaySever(store)
-	startGinSever(store)
+	redisOpt := asynq.RedisClientOpt{
+		Addr: config.RedisServerAddress,
+	}
+
+	taskProducer := worker.NewRedisTaskProducer(redisOpt)
+
+	go runTaskProcessorServer(redisOpt, store)
+	go startGRPCSever(store, taskProducer)
+	startGRPCGatewaySever(store, taskProducer)
+	// startGinSever(store)
+}
+
+func runTaskProcessorServer(redisOpt asynq.RedisClientOpt, store db.Store) {
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store)
+	logger.Info().Msg("initailizing and starting task processor server")
+
+	if err := taskProcessor.Start(); err != nil {
+		logger.Fatal().Msgf("unable to start the task processor server %v", err)
+	}
 }
 
 func startGinSever(store db.Store) {
@@ -55,9 +73,9 @@ func startGinSever(store db.Store) {
 	}
 }
 
-func startGRPCSever(store db.Store) {
+func startGRPCSever(store db.Store, taskProducer worker.TaskProducer) {
 
-	server, err := gapi.NewServer(store, config)
+	server, err := gapi.NewServer(store, config, taskProducer)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create the grpc server due to %v", err))
 	}
@@ -82,9 +100,9 @@ func startGRPCSever(store db.Store) {
 	}
 }
 
-func startGRPCGatewaySever(store db.Store) {
+func startGRPCGatewaySever(store db.Store, taskProducer worker.TaskProducer) {
 
-	server, err := gapi.NewServer(store, config)
+	server, err := gapi.NewServer(store, config, taskProducer)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create the grpc gateway server due to %v", err))
 	}

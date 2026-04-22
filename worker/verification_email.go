@@ -19,7 +19,7 @@ type EmailDeliveryPayload struct {
 	Username string `json:"username"`
 }
 
-func (producer *RedisTaskProducer) ProduceSendVerificationEmail(ctx context.Context, username string, payload *EmailDeliveryPayload, opts ...asynq.Option) error {
+func (producer *RedisTaskProducer) ProduceSendVerificationEmail(ctx context.Context, payload *EmailDeliveryPayload, opts ...asynq.Option) error {
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("unable to marshal the json payload for sending verification email %w", err)

@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/util/validator"
+	"github.com/shivangp0208/bank_application/worker"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -41,6 +43,16 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	_, err = s.store.CreateUser(ctx, arg)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to create user: %v", err.Error())
+	}
+
+	opts := []asynq.Option{
+		asynq.MaxRetry(5),
+		asynq.ProcessIn(10 * time.Second),
+		asynq.Queue(worker.CriticalQueue),
+	}
+	err = s.taskProducer.ProduceSendVerificationEmail(ctx, &worker.EmailDeliveryPayload{Username: arg.Username}, opts...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to produce send verification email : %v", err.Error())
 	}
 
 	createdUser, err := s.store.GetUser(ctx, req.Username)

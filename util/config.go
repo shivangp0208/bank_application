@@ -13,6 +13,7 @@ type Config struct {
 	GRPCGatewayServerAddress   string        `mapstructure:"grpcGatewayServerAddress"`
 	GinHTTPServerAddress       string        `mapstructure:"ginHttpServerAddress"`
 	GRPCServerAddress          string        `mapstructure:"grpcServerAddress"`
+	RedisServerAddress         string        `mapstructure:"redisServerAddress"`
 	MinSecretKeyLength         int           `mapstructure:"minSecretKeyLength"`
 	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`
 	AccessTokenExpirationTime  time.Duration `mapstructure:"accessTokenExpirationTime"`
