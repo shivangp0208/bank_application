@@ -33,40 +33,40 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 		return nil, status.Errorf(codes.Internal, "failed to hash the password: %v", err)
 	}
 
-	arg := db.CreateUserParams{
-		Username:       req.Username,
-		HashedPassword: userPass,
-		FullName:       req.FullName,
-		Email:          req.Email,
+	arg := db.CreateUserTxParams{
+		User: db.CreateUserParams{
+			Username:       req.Username,
+			HashedPassword: userPass,
+			FullName:       req.FullName,
+			Email:          req.Email,
+		},
+		AfterCreateUser: func(user db.User) error {
+			jsonPayload := &worker.EmailDeliveryPayload{
+				Username: user.Username,
+			}
+
+			opts := []asynq.Option{
+				asynq.MaxRetry(5),
+				asynq.ProcessIn(10 * time.Second),
+				asynq.Queue(worker.CriticalQueue),
+			}
+
+			return s.taskProducer.ProduceSendVerificationEmail(ctx, jsonPayload, opts...)
+		},
 	}
 
-	_, err = s.store.CreateUser(ctx, arg)
+	txRes, err := s.store.CreateUserTx(ctx, arg)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to create user: %v", err.Error())
 	}
 
-	opts := []asynq.Option{
-		asynq.MaxRetry(5),
-		asynq.ProcessIn(10 * time.Second),
-		asynq.Queue(worker.CriticalQueue),
-	}
-	err = s.taskProducer.ProduceSendVerificationEmail(ctx, &worker.EmailDeliveryPayload{Username: arg.Username}, opts...)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to produce send verification email : %v", err.Error())
-	}
-
-	createdUser, err := s.store.GetUser(ctx, req.Username)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to get the created user: %v", err.Error())
-	}
-
 	res := pb.CreateUserResponse{
 		User: &pb.User{
-			Username:          createdUser.Username,
-			FullName:          createdUser.FullName,
-			Email:             createdUser.Email,
-			PasswordChangedAt: timestamppb.New(createdUser.PasswordChangedAt.Time),
-			CreatedAt:         timestamppb.New(createdUser.CreatedAt),
+			Username:          txRes.User.Username,
+			FullName:          txRes.User.FullName,
+			Email:             txRes.User.Email,
+			PasswordChangedAt: timestamppb.New(txRes.User.PasswordChangedAt.Time),
+			CreatedAt:         timestamppb.New(txRes.User.CreatedAt),
 		},
 	}
 
