@@ -1,11 +1,10 @@
 package mailer
 
 import (
-	"fmt"
-	"net/smtp"
 	"strconv"
 
-	"github.com/jordan-wright/email"
+	"gopkg.in/gomail.v2"
+
 	"github.com/shivangp0208/bank_application/util"
 )
 
@@ -27,6 +26,7 @@ type GmailSender struct {
 	fromEmailPass    string
 
 	smtpAuthAddress   string
+	smtpServerPort    int
 	smtpServerAddress string
 }
 
@@ -37,17 +37,23 @@ func (sender *GmailSender) SendEmail(
 	cc []string,
 	bcc []string,
 ) error {
-	e := email.NewEmail()
-	e.From = fmt.Sprintf("%s <%s>", sender.name, sender.fromEmailAddress)
-	e.Subject = subject
-	e.HTML = []byte(body)
-	e.To = to
-	e.Cc = cc
-	e.Bcc = bcc
 
-	auth := smtp.PlainAuth("", sender.fromEmailAddress, sender.fromEmailPass, sender.smtpAuthAddress)
+	m := gomail.NewMessage()
+	m.SetHeader("From", sender.fromEmailAddress)
+	m.SetHeader("To", to...)
+	m.SetHeader("Cc", cc...)
+	m.SetHeader("Bcc", bcc...)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/html", body)
 
-	return e.Send(sender.smtpServerAddress, auth)
+	dialer := gomail.NewDialer(sender.smtpAuthAddress, sender.smtpServerPort, sender.fromEmailAddress, sender.fromEmailPass)
+
+	if err := dialer.DialAndSend(m); err != nil {
+		logger.Error().Str("from", sender.fromEmailAddress).Msgf("unable to send the email: %v", err)
+		return err
+	}
+	logger.Info().Str("from", sender.fromEmailAddress).Str("subject", subject).Msgf("success sending the email")
+	return nil
 }
 
 func NewGmailSender(name string, config util.Config) EmailSender {
@@ -58,5 +64,6 @@ func NewGmailSender(name string, config util.Config) EmailSender {
 		fromEmailPass:     config.FromEmailPass,
 		smtpAuthAddress:   config.EmailHost,
 		smtpServerAddress: smtpServerAdd,
+		smtpServerPort:    config.EmailHostPort,
 	}
 }
