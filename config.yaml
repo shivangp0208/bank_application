@@ -8,3 +8,7 @@ minSecretKeyLength: 32
 accessTokenSecretKey: k9Fv2Xq8LmR7aZp3D1sJw6TnYc4B0uHek9Fv2Xq8LmR7aZp3D1
 accessTokenExpirationTime: 2h
 refreshTokenExpirationTime: 24h
+fromEmailAddress: shivangpatel154@gmail.com
+fromEmailPass: "qhtk hmwb nsah idos"
+emailHost: smtp.gmail.com
+emailHostPort: 587

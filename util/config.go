@@ -18,6 +18,10 @@ type Config struct {
 	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`
 	AccessTokenExpirationTime  time.Duration `mapstructure:"accessTokenExpirationTime"`
 	RefreshTokenExpirationTime time.Duration `mapstructure:"refreshTokenExpirationTime"`
+	FromEmailAddress           string        `mapstructure:"fromEmailAddress"`
+	FromEmailPass              string        `mapstructure:"fromEmailPass"`
+	EmailHost                  string        `mapstructure:"emailHost"`
+	EmailHostPort              int           `mapstructure:"emailHostPort"`
 }
 
 func GetConfig() Config {
