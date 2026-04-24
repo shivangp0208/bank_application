@@ -56,10 +56,10 @@ func (sender *GmailSender) SendEmail(
 	return nil
 }
 
-func NewGmailSender(name string, config util.Config) EmailSender {
+func NewGmailSender(config util.Config) EmailSender {
 	smtpServerAdd := config.EmailHost + ":" + strconv.Itoa(config.EmailHostPort)
 	return &GmailSender{
-		name:              name,
+		name:              config.SenderName,
 		fromEmailAddress:  config.FromEmailAddress,
 		fromEmailPass:     config.FromEmailPass,
 		smtpAuthAddress:   config.EmailHost,

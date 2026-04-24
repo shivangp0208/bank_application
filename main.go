@@ -13,6 +13,7 @@ import (
 	"github.com/shivangp0208/bank_application/api"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/gapi"
+	"github.com/shivangp0208/bank_application/mailer"
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/worker"
@@ -52,7 +53,10 @@ func main() {
 }
 
 func runTaskProcessorServer(redisOpt asynq.RedisClientOpt, store db.Store) {
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store)
+
+	emailSender := mailer.NewGmailSender(config)
+
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailSender)
 	logger.Info().Msg("initailizing and starting task processor server")
 
 	if err := taskProcessor.Start(); err != nil {

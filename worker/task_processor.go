@@ -5,6 +5,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/mailer"
 )
 
 const (
@@ -18,11 +19,12 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server *asynq.Server
-	store  db.Store
+	server      *asynq.Server
+	store       db.Store
+	emailSender mailer.EmailSender
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store, emailSender mailer.EmailSender) TaskProcessor {
 	server := asynq.NewServer(redisOpt, asynq.Config{
 		Queues: map[string]int{
 			CriticalQueue: 10,
@@ -34,7 +36,8 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskPr
 	})
 
 	return &RedisTaskProcessor{
-		server: server,
-		store:  store,
+		server:      server,
+		store:       store,
+		emailSender: emailSender,
 	}
 }

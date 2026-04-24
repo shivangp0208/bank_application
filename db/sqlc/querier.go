@@ -16,6 +16,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (sql.Result, error)
 	CreateTransfers(ctx context.Context, arg CreateTransfersParams) (sql.Result, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error)
+	CreateVerifiyEmail(ctx context.Context, arg CreateVerifiyEmailParams) (sql.Result, error)
 	DeleteAccounts(ctx context.Context, id uint64) error
 	DeleteEntries(ctx context.Context, id uint64) error
 	DeleteSession(ctx context.Context, id string) error
@@ -27,6 +28,7 @@ type Querier interface {
 	GetSession(ctx context.Context, id string) (Session, error)
 	GetTransfers(ctx context.Context, id uint64) (Transfer, error)
 	GetUser(ctx context.Context, username string) (User, error)
+	GetVerifiyEmail(ctx context.Context, id uint64) (VerifyEmail, error)
 	ListAccounts(ctx context.Context) ([]Account, error)
 	ListEntries(ctx context.Context) ([]Entry, error)
 	ListPagedAccounts(ctx context.Context, arg ListPagedAccountsParams) ([]Account, error)

@@ -18,6 +18,7 @@ type Config struct {
 	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`
 	AccessTokenExpirationTime  time.Duration `mapstructure:"accessTokenExpirationTime"`
 	RefreshTokenExpirationTime time.Duration `mapstructure:"refreshTokenExpirationTime"`
+	SenderName                 string        `mapstructure:"senderName"`
 	FromEmailAddress           string        `mapstructure:"fromEmailAddress"`
 	FromEmailPass              string        `mapstructure:"fromEmailPass"`
 	EmailHost                  string        `mapstructure:"emailHost"`

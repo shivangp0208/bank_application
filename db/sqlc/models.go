@@ -48,6 +48,17 @@ type User struct {
 	HashedPassword    string       `db:"hashed_password"`
 	FullName          string       `db:"full_name"`
 	Email             string       `db:"email"`
+	IsVerified        bool         `db:"is_verified"`
 	PasswordChangedAt sql.NullTime `db:"password_changed_at"`
 	CreatedAt         time.Time    `db:"created_at"`
+}
+
+type VerifyEmail struct {
+	ID         uint64       `db:"id"`
+	Username   string       `db:"username"`
+	Email      string       `db:"email"`
+	SecretCode string       `db:"secret_code"`
+	IsUsed     bool         `db:"is_used"`
+	CreatedAt  time.Time    `db:"created_at"`
+	ExpiredAt  sql.NullTime `db:"expired_at"`
 }
