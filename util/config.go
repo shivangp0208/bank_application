@@ -14,6 +14,7 @@ type Config struct {
 	GinHTTPServerAddress       string        `mapstructure:"ginHttpServerAddress"`
 	GRPCServerAddress          string        `mapstructure:"grpcServerAddress"`
 	RedisServerAddress         string        `mapstructure:"redisServerAddress"`
+	MailVerificationPort       string        `mapstructure:"mailVerificationPort"`
 	MinSecretKeyLength         int           `mapstructure:"minSecretKeyLength"`
 	AccessTokenSecretKey       string        `mapstructure:"accessTokenSecretKey"`
 	AccessTokenExpirationTime  time.Duration `mapstructure:"accessTokenExpirationTime"`

@@ -1,8 +1,9 @@
-dbSource: shivang:12345678@tcp(localhost:3306)/bank_application?parseTime=true
+dbSource: root:12345678@tcp(127.0.0.1:3306)/bank_application?parseTime=true
 dbDriver: mysql
 grpcGatewayServerAddress: 0.0.0.0:8080
 ginHttpServerAddress: 0.0.0.0:8085
 grpcServerAddress: 0.0.0.0:8090
+mailVerificationPort: 8080 
 redisServerAddress: 0.0.0.0:6379
 minSecretKeyLength: 32
 accessTokenSecretKey: k9Fv2Xq8LmR7aZp3D1sJw6TnYc4B0uHek9Fv2Xq8LmR7aZp3D1

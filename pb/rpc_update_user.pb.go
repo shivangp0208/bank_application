@@ -91,7 +91,7 @@ func (x *UpdateUserRequest) GetEmail() string {
 
 type UpdateUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,6,opt,name=user,proto3" json:"user,omitempty"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -149,7 +149,7 @@ const file_rpc_update_user_proto_rawDesc = "" +
 	"_full_nameB\b\n" +
 	"\x06_email\"2\n" +
 	"\x12UpdateUserResponse\x12\x1c\n" +
-	"\x04user\x18\x06 \x01(\v2\b.pb.UserR\x04userB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
+	"\x04user\x18\x01 \x01(\v2\b.pb.UserR\x04userB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
 
 var (
 	file_rpc_update_user_proto_rawDescOnce sync.Once

@@ -25,5 +25,5 @@ WHERE username = ?;
 
 -- name: UpdateUser :exec
 UPDATE users 
-SET full_name = COALESCE(sqlc.narg(full_name), full_name), hashed_password = COALESCE(sqlc.narg(hashed_password), hashed_password), email = COALESCE(sqlc.narg(email), email), password_changed_at = COALESCE(sqlc.narg(password_changed_at), password_changed_at)
+SET full_name = COALESCE(sqlc.narg(full_name), full_name), hashed_password = COALESCE(sqlc.narg(hashed_password), hashed_password), email = COALESCE(sqlc.narg(email), email), password_changed_at = COALESCE(sqlc.narg(password_changed_at), password_changed_at), is_verified = COALESCE(sqlc.narg(is_verified), is_verified)
 WHERE username = sqlc.arg(username);

@@ -56,7 +56,7 @@ func runTaskProcessorServer(redisOpt asynq.RedisClientOpt, store db.Store) {
 
 	emailSender := mailer.NewGmailSender(config)
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailSender)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailSender, &config)
 	logger.Info().Msg("initailizing and starting task processor server")
 
 	if err := taskProcessor.Start(); err != nil {

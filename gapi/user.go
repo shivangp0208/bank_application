@@ -23,7 +23,7 @@ var logger = util.GetLogger()
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
-		logger.Info().Msgf("validation failed for input arguments for create user req")
+		logger.Error().Msgf("validation failed for input arguments for create user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
 	logger.Info().Msgf("validation passed for all input arguments for create user req")
@@ -32,6 +32,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to hash the password: %v", err)
 	}
+	logger.Debug().Msg("successfully generated the hash password from the req password")
 
 	arg := db.CreateUserTxParams{
 		User: db.CreateUserParams{
@@ -44,7 +45,6 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 			jsonPayload := &worker.EmailDeliveryPayload{
 				Username: user.Username,
 			}
-
 			opts := []asynq.Option{
 				asynq.MaxRetry(5),
 				// There is a very big imp of this delay in this task, as the create user task is wrapped inside a transaction with a execTx func so in that first the db call is being made but the user data is still not stored as it will be stored only after committing the transaction, so assume that this execTx took too long to commit the transaction but was able to run the func inside it quickly then if there will be no delay then the process email will throw the error user not found as at that timr the user data is not stored in the db
@@ -52,7 +52,12 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 				asynq.Queue(worker.CriticalQueue),
 			}
 
-			return s.taskProducer.ProduceSendVerificationEmail(ctx, jsonPayload, opts...)
+			err := s.taskProducer.ProduceSendVerificationEmail(ctx, jsonPayload, opts...)
+			if err != nil {
+				logger.Error().Str("username", jsonPayload.Username).Msgf("unable to produce the verification email task in the async queue")
+			}
+			logger.Info().Str("username", jsonPayload.Username).Msgf("successfully produce the verification email task in the async queue")
+			return nil
 		},
 	}
 
@@ -60,6 +65,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to create user: %v", err.Error())
 	}
+	logger.Info().Str("full_name", txRes.User.FullName).Str("email", txRes.User.Email).Msgf("successfully created user with username %s", txRes.User.Username)
 
 	res := pb.CreateUserResponse{
 		User: &pb.User{
@@ -207,6 +213,40 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}
 
 	return &res, nil
+}
+
+func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
+
+	logger.Info().Str("secret_code", req.SecretCode).Msgf("GET req to verify the email by the user's username %s", req.Username)
+	// validate all field according to format in the given req
+	if violations := validator.ValidateVerifyUserEmailReq(req); violations != nil {
+		logger.Info().Msgf("validation failed for input arguments for verify user req")
+		return nil, validator.InvalidArgumentError(violations)
+	}
+	logger.Info().Msgf("validation passed for all input arguments for verify user req")
+
+	// update the db for verify emails by checking all validation
+	verifiedUser, err := s.store.VerifyUserEmailTx(ctx, db.VerifyUserTxParams{
+		Username:   req.Username,
+		SecretCode: req.SecretCode,
+	})
+	if err != nil {
+		logger.Error().Msgf("unable to verify the user: %v", err)
+		return nil, err
+	}
+	logger.Info().Msgf("success verifying user, updated all db records")
+
+	result := &pb.VerifyEmailResponse{
+		User: &pb.User{
+			Username:          verifiedUser.User.Username,
+			FullName:          verifiedUser.User.FullName,
+			Email:             verifiedUser.User.Email,
+			PasswordChangedAt: timestamppb.New(verifiedUser.User.PasswordChangedAt.Time),
+			CreatedAt:         timestamppb.New(verifiedUser.User.CreatedAt),
+		},
+	}
+
+	return result, nil
 }
 
 func checkSqlErr(err error) (bool, error) {

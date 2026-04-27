@@ -32,6 +32,13 @@ func ValidateUsername(username string) error {
 	return nil
 }
 
+func ValidateSecretCode(secretCode string) error {
+	if err := ValidateString(secretCode, 36, 36); err != nil {
+		return err
+	}
+	return nil
+}
+
 func ValidateFullName(name string) error {
 	if err := ValidateString(name, 1, 255); err != nil {
 		return err
@@ -101,6 +108,16 @@ func ValidateLoginUserReq(req *pb.LoginUserRequest) (violations []*errdetails.Ba
 	}
 	if err := ValidatePassword(req.Password); err != nil {
 		violations = append(violations, ValidateField(req.Password, err))
+	}
+	return violations
+}
+
+func ValidateVerifyUserEmailReq(req *pb.VerifyEmailRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+	if err := ValidateUsername(req.Username); err != nil {
+		violations = append(violations, ValidateField(req.Username, err))
+	}
+	if err := ValidateSecretCode(req.SecretCode); err != nil {
+		violations = append(violations, ValidateField(req.SecretCode, err))
 	}
 	return violations
 }

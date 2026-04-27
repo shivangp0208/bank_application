@@ -72,7 +72,7 @@ func (processor *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Co
 	}
 
 	// email definition
-	subject, msg := GetVerificationMail(createdVerifyEmail.Username, createdVerifyEmail.SecretCode)
+	subject, msg := GetVerificationMail(createdVerifyEmail.Username, createdVerifyEmail.SecretCode, processor.config)
 
 	// sending the email for verification
 	processor.emailSender.SendEmail(subject, msg, []string{createdVerifyEmail.Email}, nil, nil)
@@ -90,10 +90,10 @@ func (processor *RedisTaskProcessor) Start() error {
 	return processor.server.Start(asyncMux)
 }
 
-func GetVerificationMail(username string, secret string) (subject string, body string) {
+func GetVerificationMail(username string, secret string, config *util.Config) (subject string, body string) {
 	subject = "Verify Email For Bank"
 
-	verificationLink := fmt.Sprintf("https://securebank.com/verify?username=%s&secret_code=%s", username, secret)
+	verificationLink := fmt.Sprintf("http://localhost:%s/api/v1/verify?username=%s&secret_code=%s", config.MailVerificationPort, username, secret)
 
 	body = fmt.Sprintf(`<!DOCTYPE html>
 <html>

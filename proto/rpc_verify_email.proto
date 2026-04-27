@@ -6,13 +6,11 @@ import "user.proto";
 
 option go_package = "github.com/shivangp0208/bank_application/pb";
 
-message UpdateUserRequest {
+message VerifyEmailRequest {
     string username = 1;
-    optional string password = 2;
-    optional string full_name = 3;
-    optional string email = 4;
+    string secret_code = 2;
 }
 
-message UpdateUserResponse {
+message VerifyEmailResponse {
     User user = 1; 
 }
