@@ -81,6 +81,34 @@
       }
     },
     "/api/v1/users/{username}": {
+      "get": {
+        "operationId": "SimpleBank_GetUserByUsername",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SimpleBank"
+        ]
+      },
       "patch": {
         "operationId": "SimpleBank_UpdateUser",
         "responses": {
@@ -195,6 +223,14 @@
         }
       }
     },
+    "pbGetUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/pbUser"
+        }
+      }
+    },
     "pbLoginUserRequest": {
       "type": "object",
       "properties": {
@@ -252,6 +288,12 @@
         "email": {
           "type": "string"
         },
+        "role": {
+          "type": "string"
+        },
+        "isVerified": {
+          "type": "boolean"
+        },
         "passwordChangedAt": {
           "type": "string",
           "format": "date-time"
@@ -265,8 +307,11 @@
     "pbVerifyEmailResponse": {
       "type": "object",
       "properties": {
-        "user": {
-          "$ref": "#/definitions/pbUser"
+        "username": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },

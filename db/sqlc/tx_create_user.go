@@ -22,7 +22,7 @@ func (store *SQLStore) CreateUserTx(ctx context.Context, arg CreateUserTxParams)
 		_, err = q.CreateUser(ctx, arg.User)
 		createdUser, err := q.GetUser(ctx, arg.User.Username)
 		if err != nil {
-			return fmt.Errorf("unable to get the created user: %v", err.Error())
+			return fmt.Errorf("unable to create user: %v", err.Error())
 		}
 		logger.Info().Str("username", arg.User.Username).Str("email", arg.User.Email).Str("full_name", arg.User.FullName).Msg("successfully created user in db")
 

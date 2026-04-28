@@ -65,19 +65,27 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to create user: %v", err.Error())
 	}
-	logger.Info().Str("full_name", txRes.User.FullName).Str("email", txRes.User.Email).Msgf("successfully created user with username %s", txRes.User.Username)
+	logger.Info().
+		Str("full_name", txRes.User.FullName).
+		Str("email", txRes.User.Email).
+		Str("role", txRes.User.Role).
+		Str("password_changed_at", txRes.User.PasswordChangedAt.Time.String()).
+		Str("created_at", txRes.User.CreatedAt.String()).
+		Msgf("successfully created user with username %s", txRes.User.Username)
 
-	res := pb.CreateUserResponse{
+	res := &pb.CreateUserResponse{
 		User: &pb.User{
 			Username:          txRes.User.Username,
 			FullName:          txRes.User.FullName,
 			Email:             txRes.User.Email,
+			Role:              txRes.User.Role,
+			IsVerified:        txRes.User.IsVerified,
 			PasswordChangedAt: timestamppb.New(txRes.User.PasswordChangedAt.Time),
 			CreatedAt:         timestamppb.New(txRes.User.CreatedAt),
 		},
 	}
 
-	return &res, nil
+	return res, nil
 }
 
 func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
@@ -97,12 +105,12 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 		return nil, status.Errorf(codes.Unauthenticated, "password not matched %v", err)
 	}
 
-	accessToken, accessPayload, err := s.tokenMaker.CreateToken(req.Username, s.config.AccessTokenExpirationTime)
+	accessToken, accessPayload, err := s.tokenMaker.CreateToken(user.Username, user.Role, s.config.AccessTokenExpirationTime)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to generate the access token %v", err)
 	}
 
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(req.Username, s.config.RefreshTokenExpirationTime)
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.Username, user.Role, s.config.RefreshTokenExpirationTime)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to generate the refresh token %v", err)
 	}
@@ -146,7 +154,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	if payload.Username != req.Username {
+	if payload.Role != util.Accountant && payload.Username != req.Username {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token, username mismatch in token %s and req %s", payload.Username, req.Username)
 	}
 
@@ -207,6 +215,8 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 			Username:          updatedUser.Username,
 			FullName:          updatedUser.FullName,
 			Email:             updatedUser.Email,
+			Role:              updatedUser.Role,
+			IsVerified:        updatedUser.IsVerified,
 			PasswordChangedAt: timestamppb.New(updatedUser.PasswordChangedAt.Time),
 			CreatedAt:         timestamppb.New(updatedUser.CreatedAt),
 		},
@@ -217,7 +227,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 
 func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
 
-	logger.Info().Str("secret_code", req.SecretCode).Msgf("GET req to verify the email by the user's username %s", req.Username)
+	logger.Info().Msgf("GET req to verify the email by the user's username %s", req.Username)
 	// validate all field according to format in the given req
 	if violations := validator.ValidateVerifyUserEmailReq(req); violations != nil {
 		logger.Info().Msgf("validation failed for input arguments for verify user req")
@@ -237,16 +247,40 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 	logger.Info().Msgf("success verifying user, updated all db records")
 
 	result := &pb.VerifyEmailResponse{
-		User: &pb.User{
-			Username:          verifiedUser.User.Username,
-			FullName:          verifiedUser.User.FullName,
-			Email:             verifiedUser.User.Email,
-			PasswordChangedAt: timestamppb.New(verifiedUser.User.PasswordChangedAt.Time),
-			CreatedAt:         timestamppb.New(verifiedUser.User.CreatedAt),
-		},
+		Username: verifiedUser.User.Username,
+		Message:  "User Verified Successfully",
 	}
 
 	return result, nil
+}
+
+func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (res *pb.GetUserResponse, err error) {
+	logger.Info().Msgf("GET req to get the user by the user's username %s", req.Username)
+	if err := validator.ValidateUsername(req.GetUsername()); err != nil {
+		logger.Info().Msgf("validation failed for input arguments for get user by username req")
+		return nil, err
+	}
+	logger.Info().Msgf("validation passed for all input arguments for get user req")
+
+	user, err := s.store.GetUser(ctx, req.GetUsername())
+	if err != nil {
+		logger.Error().Str("username", req.Username).Msgf("unable to get the user: %v", err)
+		return nil, err
+	}
+
+	res = &pb.GetUserResponse{
+		User: &pb.User{
+			Username:          user.Username,
+			FullName:          user.FullName,
+			Email:             user.Email,
+			Role:              user.Role,
+			IsVerified:        user.IsVerified,
+			PasswordChangedAt: timestamppb.New(user.PasswordChangedAt.Time),
+			CreatedAt:         timestamppb.New(user.CreatedAt),
+		},
+	}
+
+	return res, nil
 }
 
 func checkSqlErr(err error) (bool, error) {
@@ -264,6 +298,8 @@ func getUserResponse(user db.User) *pb.User {
 		Username:          user.Username,
 		FullName:          user.FullName,
 		Email:             user.Email,
+		Role:              user.Role,
+		IsVerified:        user.IsVerified,
 		PasswordChangedAt: timestamppb.New(user.PasswordChangedAt.Time),
 		CreatedAt:         timestamppb.New(user.CreatedAt),
 	}

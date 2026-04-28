@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package pb;
 
-import "user.proto";
-
 option go_package = "github.com/shivangp0208/bank_application/pb";
 
 message VerifyEmailRequest {
@@ -12,5 +10,6 @@ message VerifyEmailRequest {
 }
 
 message VerifyEmailResponse {
-    User user = 1; 
+    string username = 1;
+    string message = 2;
 }

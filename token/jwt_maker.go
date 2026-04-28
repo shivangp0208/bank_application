@@ -29,8 +29,8 @@ func NewJwtMaker(secretKey string) (jwtMaker Maker, err error) {
 	return &JWTMaker{secretKey}, nil
 }
 
-func (j *JWTMaker) CreateToken(userName string, duration time.Duration) (string, *Payload, error) {
-	payload, err := NewPayload(userName, duration)
+func (j *JWTMaker) CreateToken(userName string, role string, duration time.Duration) (string, *Payload, error) {
+	payload, err := NewPayload(userName, role, duration)
 	if err != nil {
 		return "", payload, err
 	}
@@ -42,7 +42,7 @@ func (j *JWTMaker) CreateToken(userName string, duration time.Duration) (string,
 
 func (j *JWTMaker) VerifyToken(token string) (*Payload, error) {
 
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
+	keyFunc := func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unable to parse token, invalid token signing signature")
 		}
@@ -52,10 +52,13 @@ func (j *JWTMaker) VerifyToken(token string) (*Payload, error) {
 	parsedToken, err := jwt.ParseWithClaims(token, &Payload{}, keyFunc)
 	if err != nil {
 		verr, ok := err.(*jwt.ValidationError)
-		if ok && errors.Is(verr, ErrExpiredToken) {
+		// fmt.Println("verr:", verr)
+		// fmt.Println("ErrExpiredToken:", ErrExpiredToken)
+		// fmt.Println("errors.Is(verr, ErrExpiredToken):", errors.Is(verr, ErrExpiredToken))
+		if ok && (verr.Error() == ErrExpiredToken.Error()) {
 			return nil, ErrExpiredToken
 		}
-		return nil, errors.New("unable to parse token claims" + err.Error())
+		return nil, errors.New("unable to parse token claims: " + err.Error())
 	}
 
 	payload, ok := parsedToken.Claims.(*Payload)

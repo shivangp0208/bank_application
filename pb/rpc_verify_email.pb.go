@@ -75,7 +75,8 @@ func (x *VerifyEmailRequest) GetSecretCode() string {
 
 type VerifyEmailResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,25 +111,32 @@ func (*VerifyEmailResponse) Descriptor() ([]byte, []int) {
 	return file_rpc_verify_email_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *VerifyEmailResponse) GetUser() *User {
+func (x *VerifyEmailResponse) GetUsername() string {
 	if x != nil {
-		return x.User
+		return x.Username
 	}
-	return nil
+	return ""
+}
+
+func (x *VerifyEmailResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 var File_rpc_verify_email_proto protoreflect.FileDescriptor
 
 const file_rpc_verify_email_proto_rawDesc = "" +
 	"\n" +
-	"\x16rpc_verify_email.proto\x12\x02pb\x1a\n" +
-	"user.proto\"Q\n" +
+	"\x16rpc_verify_email.proto\x12\x02pb\"Q\n" +
 	"\x12VerifyEmailRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1f\n" +
 	"\vsecret_code\x18\x02 \x01(\tR\n" +
-	"secretCode\"3\n" +
-	"\x13VerifyEmailResponse\x12\x1c\n" +
-	"\x04user\x18\x01 \x01(\v2\b.pb.UserR\x04userB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
+	"secretCode\"K\n" +
+	"\x13VerifyEmailResponse\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessageB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
 
 var (
 	file_rpc_verify_email_proto_rawDescOnce sync.Once
@@ -146,15 +154,13 @@ var file_rpc_verify_email_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_rpc_verify_email_proto_goTypes = []any{
 	(*VerifyEmailRequest)(nil),  // 0: pb.VerifyEmailRequest
 	(*VerifyEmailResponse)(nil), // 1: pb.VerifyEmailResponse
-	(*User)(nil),                // 2: pb.User
 }
 var file_rpc_verify_email_proto_depIdxs = []int32{
-	2, // 0: pb.VerifyEmailResponse.user:type_name -> pb.User
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_rpc_verify_email_proto_init() }
@@ -162,7 +168,6 @@ func file_rpc_verify_email_proto_init() {
 	if File_rpc_verify_email_proto != nil {
 		return
 	}
-	file_user_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

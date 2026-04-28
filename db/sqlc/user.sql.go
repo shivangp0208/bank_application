@@ -45,7 +45,7 @@ func (q *Queries) DeleteUser(ctx context.Context, username string) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT username, hashed_password, full_name, email, is_verified, password_changed_at, created_at FROM users
+SELECT username, hashed_password, role, full_name, email, is_verified, password_changed_at, created_at FROM users
 WHERE username = ?
 `
 
@@ -55,6 +55,7 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 	err := row.Scan(
 		&i.Username,
 		&i.HashedPassword,
+		&i.Role,
 		&i.FullName,
 		&i.Email,
 		&i.IsVerified,
@@ -65,7 +66,7 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 }
 
 const listPagedUsers = `-- name: ListPagedUsers :many
-SELECT username, hashed_password, full_name, email, is_verified, password_changed_at, created_at FROM users
+SELECT username, hashed_password, role, full_name, email, is_verified, password_changed_at, created_at FROM users
 ORDER BY username
 LIMIT ?
 OFFSET ?
@@ -88,6 +89,7 @@ func (q *Queries) ListPagedUsers(ctx context.Context, arg ListPagedUsersParams) 
 		if err := rows.Scan(
 			&i.Username,
 			&i.HashedPassword,
+			&i.Role,
 			&i.FullName,
 			&i.Email,
 			&i.IsVerified,
@@ -108,7 +110,7 @@ func (q *Queries) ListPagedUsers(ctx context.Context, arg ListPagedUsersParams) 
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT username, hashed_password, full_name, email, is_verified, password_changed_at, created_at FROM users
+SELECT username, hashed_password, role, full_name, email, is_verified, password_changed_at, created_at FROM users
 ORDER BY username
 `
 
@@ -124,6 +126,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		if err := rows.Scan(
 			&i.Username,
 			&i.HashedPassword,
+			&i.Role,
 			&i.FullName,
 			&i.Email,
 			&i.IsVerified,

@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func addAuthorization(t *testing.T, req *http.Request, tokenMaker token.Maker, authorizationType string, username string, duration time.Duration) {
-	token, payload, err := tokenMaker.CreateToken(username, duration)
+func addAuthorization(t *testing.T, req *http.Request, tokenMaker token.Maker, authorizationType string, username string, role string, duration time.Duration) {
+	token, payload, err := tokenMaker.CreateToken(username, role, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, payload)
@@ -34,7 +34,7 @@ func TestAuthMiddleware(t *testing.T) {
 		{
 			name: "OK",
 			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
-				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, time.Minute)
+				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, util.User, time.Minute)
 			},
 			checkResponse: func(t *testing.T, res *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, res.Code)
@@ -43,7 +43,7 @@ func TestAuthMiddleware(t *testing.T) {
 		{
 			name: "NoAuthorization",
 			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
-				addAuthorization(t, req, tokenMaker, "", username, time.Minute)
+				addAuthorization(t, req, tokenMaker, "", username, util.User, time.Minute)
 			},
 			checkResponse: func(t *testing.T, res *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, res.Code)
@@ -52,7 +52,7 @@ func TestAuthMiddleware(t *testing.T) {
 		{
 			name: "UnsupportedAuthorization",
 			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
-				addAuthorization(t, req, tokenMaker, "unsupported", username, time.Minute)
+				addAuthorization(t, req, tokenMaker, "unsupported", username, util.User, time.Minute)
 			},
 			checkResponse: func(t *testing.T, res *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, res.Code)
@@ -61,7 +61,7 @@ func TestAuthMiddleware(t *testing.T) {
 		{
 			name: "ExpiredToken",
 			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
-				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, -time.Minute)
+				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, util.User, -time.Minute)
 			},
 			checkResponse: func(t *testing.T, res *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusUnauthorized, res.Code)

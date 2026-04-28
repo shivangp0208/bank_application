@@ -46,6 +46,7 @@ type Transfer struct {
 type User struct {
 	Username          string       `db:"username"`
 	HashedPassword    string       `db:"hashed_password"`
+	Role              string       `db:"role"`
 	FullName          string       `db:"full_name"`
 	Email             string       `db:"email"`
 	IsVerified        bool         `db:"is_verified"`

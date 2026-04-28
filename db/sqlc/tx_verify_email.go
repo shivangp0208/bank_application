@@ -31,7 +31,7 @@ func (store *SQLStore) VerifyUserEmailTx(ctx context.Context, arg VerifyUserTxPa
 		_, err := q.UpdateVerifyEmail(ctx, emailArg)
 		updatedEmail, err := q.GetVerifiyEmailByUsername(ctx, emailArg.Username)
 		if err != nil {
-			logger.Error().Str("username", emailArg.Username).Str("secret_code", emailArg.SecretCode).Msgf("unable to update the email info: %v", err)
+			logger.Error().Str("username", emailArg.Username).Msgf("unable to update the email info: %v", err)
 			return err
 		}
 		logger.Info().Msgf("success updating and validating email info %v", updatedEmail)
