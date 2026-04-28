@@ -65,7 +65,7 @@ func main() {
 	runTaskProcessorServer(ctx, waitGroup, redisOpt, store)
 	startGRPCSever(ctx, waitGroup, store, taskProducer)
 	startGRPCGatewaySever(ctx, waitGroup, store, taskProducer)
-	// startGinSever(ctx, waitGroup, store)
+	startGinSever(ctx, waitGroup, store)
 
 	err = waitGroup.Wait()
 	if err != nil {
@@ -96,6 +96,7 @@ func runTaskProcessorServer(ctx context.Context, waitGroup *errgroup.Group, redi
 }
 
 func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store) {
+func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store) {
 	server, err := api.NewServer(store, config)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create Gin server due to err %v", err))
@@ -111,6 +112,9 @@ func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Stor
 		// err = server.Start(config.GinHTTPServerAddress)
 		logger.Info().Msgf("Gin server listnening on address %s", config.GinHTTPServerAddress)
 		if err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				return nil
+			}
 			logger.Err(fmt.Errorf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err))
 			return err
 		}
