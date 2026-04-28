@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -17,10 +21,17 @@ import (
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/worker"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
 )
+
+var interruptSignals = []os.Signal{
+	os.Interrupt,
+	syscall.SIGTERM,
+	syscall.SIGINT,
+}
 
 var conn *sql.DB
 var err error
@@ -38,6 +49,9 @@ func init() {
 }
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), interruptSignals...)
+	defer stop()
+
 	store := db.NewStore(conn)
 
 	redisOpt := asynq.RedisClientOpt{
@@ -46,13 +60,20 @@ func main() {
 
 	taskProducer := worker.NewRedisTaskProducer(redisOpt)
 
-	go runTaskProcessorServer(redisOpt, store)
-	go startGRPCSever(store, taskProducer)
-	startGRPCGatewaySever(store, taskProducer)
-	// startGinSever(store)
+	waitGroup, ctx := errgroup.WithContext(ctx)
+
+	runTaskProcessorServer(ctx, waitGroup, redisOpt, store)
+	startGRPCSever(ctx, waitGroup, store, taskProducer)
+	startGRPCGatewaySever(ctx, waitGroup, store, taskProducer)
+	// startGinSever(ctx, waitGroup, store)
+
+	err = waitGroup.Wait()
+	if err != nil {
+		logger.Fatal().Msgf("error from wait group: %v", err)
+	}
 }
 
-func runTaskProcessorServer(redisOpt asynq.RedisClientOpt, store db.Store) {
+func runTaskProcessorServer(ctx context.Context, waitGroup *errgroup.Group, redisOpt asynq.RedisClientOpt, store db.Store) {
 
 	emailSender := mailer.NewGmailSender(config)
 
@@ -62,22 +83,52 @@ func runTaskProcessorServer(redisOpt asynq.RedisClientOpt, store db.Store) {
 	if err := taskProcessor.Start(); err != nil {
 		logger.Fatal().Msgf("unable to start the task processor server %v", err)
 	}
+
+	waitGroup.Go(func() error {
+		<-ctx.Done()
+		logger.Info().Msg("gracefully shutting down the task processor")
+
+		taskProcessor.Shutdown()
+		logger.Info().Msg("task processor gracefully shutted down")
+
+		return nil
+	})
 }
 
-func startGinSever(store db.Store) {
+func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store) {
 	server, err := api.NewServer(store, config)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create Gin server due to err %v", err))
 	}
 
-	err = server.Start(config.GinHTTPServerAddress)
-	logger.Info().Msgf("Gin server listnening on address %s", config.GinHTTPServerAddress)
-	if err != nil {
-		logger.Err(fmt.Errorf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err))
+	httpServer := &http.Server{
+		Addr:    config.GinHTTPServerAddress,
+		Handler: server.Router,
 	}
+
+	waitGroup.Go(func() error {
+		err = httpServer.ListenAndServe()
+		// err = server.Start(config.GinHTTPServerAddress)
+		logger.Info().Msgf("Gin server listnening on address %s", config.GinHTTPServerAddress)
+		if err != nil {
+			logger.Err(fmt.Errorf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err))
+			return err
+		}
+		return nil
+	})
+
+	waitGroup.Go(func() error {
+		<-ctx.Done()
+		logger.Info().Msg("gracefully shutting down the gin server")
+
+		httpServer.Shutdown(context.Background())
+		logger.Info().Msg("gin server gracefully shutted down")
+
+		return nil
+	})
 }
 
-func startGRPCSever(store db.Store, taskProducer worker.TaskProducer) {
+func startGRPCSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store, taskProducer worker.TaskProducer) {
 
 	server, err := gapi.NewServer(store, config, taskProducer)
 	if err != nil {
@@ -98,13 +149,30 @@ func startGRPCSever(store db.Store, taskProducer worker.TaskProducer) {
 		logger.Err(fmt.Errorf("unable to create grpc listner due to err %v", err))
 	}
 
-	logger.Info().Msgf("grpc server listnening on address %s", config.GRPCServerAddress)
-	if err := grpcServer.Serve(lis); err != nil {
-		logger.Err(fmt.Errorf("unable to start the grpc server with address %s due to err %v", config.GRPCServerAddress, err))
-	}
+	waitGroup.Go(func() error {
+		logger.Info().Msgf("grpc server listnening on address %s", config.GRPCServerAddress)
+		if err := grpcServer.Serve(lis); err != nil {
+			if errors.Is(err, grpc.ErrServerStopped) {
+				return nil
+			}
+			logger.Err(fmt.Errorf("unable to start the grpc server with address %s due to err %v", config.GRPCServerAddress, err))
+			return err
+		}
+		return nil
+	})
+
+	waitGroup.Go(func() error {
+		<-ctx.Done()
+		logger.Info().Msgf("gracefully shutting down the grpc server with host: %s", config.GRPCServerAddress)
+
+		grpcServer.GracefulStop()
+		logger.Info().Msg("grpc server gracefully shutted down")
+
+		return nil
+	})
 }
 
-func startGRPCGatewaySever(store db.Store, taskProducer worker.TaskProducer) {
+func startGRPCGatewaySever(ctx context.Context, waitGroup *errgroup.Group, store db.Store, taskProducer worker.TaskProducer) {
 
 	server, err := gapi.NewServer(store, config, taskProducer)
 	if err != nil {
@@ -124,9 +192,6 @@ func startGRPCGatewaySever(store db.Store, taskProducer worker.TaskProducer) {
 	// creating a mux which is a handler for hadling all the REST req
 	gatewayMux := runtime.NewServeMux(jsonOption)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// registering the gateway handler to the grpc server
 	err = pb.RegisterSimpleBankHandlerServer(ctx, gatewayMux, server)
 	if err != nil {
@@ -139,15 +204,34 @@ func startGRPCGatewaySever(store db.Store, taskProducer worker.TaskProducer) {
 	swaggerHandler := http.FileServer(http.Dir("doc/swagger"))
 	mux.Handle("/api/swagger/ui", http.StripPrefix("/swagger/", swaggerHandler))
 
-	// listen on a tcp port to handle grpc req
-	lis, err := net.Listen("tcp", config.GRPCGatewayServerAddress)
-	if err != nil {
-		logger.Err(fmt.Errorf("unable to create net listner due to err %v", err))
+	httpServer := &http.Server{
+		Addr:    config.GRPCGatewayServerAddress,
+		Handler: util.HTTPLogger(mux),
 	}
 
-	handler := util.HTTPLogger(mux)
-	logger.Info().Msgf("grpc gateway server listnening on address %s", config.GRPCGatewayServerAddress)
-	if err := http.Serve(lis, handler); err != nil {
-		logger.Err(fmt.Errorf("unable to start the grpc gateway server with address %s due to err %v", config.GRPCGatewayServerAddress, err))
-	}
+	waitGroup.Go(func() error {
+		logger.Info().Msgf("grpc gateway server listnening on address %s", config.GRPCGatewayServerAddress)
+		if err := httpServer.ListenAndServe(); err != nil {
+			if errors.Is(err, http.ErrServerClosed) {
+				return nil
+			}
+			logger.Err(fmt.Errorf("unable to start the grpc gateway server with address %s due to err %v", config.GRPCGatewayServerAddress, err))
+			return err
+		}
+		return nil
+	})
+
+	waitGroup.Go(func() error {
+		<-ctx.Done()
+		logger.Info().Msgf("gracefully shutting down th grpc gateway server with host: %s", config.GRPCServerAddress)
+
+		err = httpServer.Shutdown(context.Background())
+		if err != nil {
+			logger.Error().Msgf("unable to gracefully shutdown the grpc gateway server with host %s", config.GRPCGatewayServerAddress)
+			return err
+		}
+		logger.Info().Msg("grpc gateway server gracefully shutted down")
+
+		return nil
+	})
 }

@@ -62,13 +62,13 @@ func (s *Server) CreateUser(c *gin.Context) {
 		Email:          req.Email,
 	}
 
-	_, err = s.store.CreateUser(c, arg)
+	_, err = s.Store.CreateUser(c, arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to create user: "+err.Error())))
 		return
 	}
 
-	createdUser, err := s.store.GetUser(c, req.Username)
+	createdUser, err := s.Store.GetUser(c, req.Username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to get the created user: "+err.Error())))
 		return
@@ -91,7 +91,7 @@ func (s *Server) GetUser(c *gin.Context) {
 		return
 	}
 
-	user, err := s.store.GetUser(c, req.username)
+	user, err := s.Store.GetUser(c, req.username)
 	if !checkSqlErr(c, err) {
 		return
 	}
@@ -135,7 +135,7 @@ func (s *Server) GetAllUser(c *gin.Context) {
 		Offset: int32((req.PageNo - 1) * req.PageSize),
 	}
 
-	users, err := s.store.ListPagedUsers(c, arg)
+	users, err := s.Store.ListPagedUsers(c, arg)
 	if !checkSqlErr(c, err) {
 		return
 	}
@@ -177,7 +177,7 @@ func (s *Server) LoginUser(c *gin.Context) {
 		return
 	}
 
-	user, err := s.store.GetUser(c, req.Username)
+	user, err := s.Store.GetUser(c, req.Username)
 	if !checkSqlErr(c, err) {
 		return
 	}
@@ -187,19 +187,19 @@ func (s *Server) LoginUser(c *gin.Context) {
 		return
 	}
 
-	accessToken, accessPayload, err := s.tokenMaker.CreateToken(user.Username, user.Role, s.config.AccessTokenExpirationTime)
+	accessToken, accessPayload, err := s.TokenMaker.CreateToken(user.Username, user.Role, s.Config.AccessTokenExpirationTime)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(user.Username, user.Role, s.config.RefreshTokenExpirationTime)
+	refreshToken, refreshPayload, err := s.TokenMaker.CreateToken(user.Username, user.Role, s.Config.RefreshTokenExpirationTime)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	_, err = s.store.CreateSession(c, db.CreateSessionParams{
+	_, err = s.Store.CreateSession(c, db.CreateSessionParams{
 		ID:           refreshPayload.ID.String(),
 		Username:     accessPayload.Username,
 		RefreshToken: refreshToken,
@@ -213,7 +213,7 @@ func (s *Server) LoginUser(c *gin.Context) {
 		return
 	}
 
-	session, err := s.store.GetSession(c, refreshPayload.ID.String())
+	session, err := s.Store.GetSession(c, refreshPayload.ID.String())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -290,15 +290,15 @@ func (s *Server) UpdateUser(c *gin.Context) {
 		}
 	}
 
-	if err := s.store.UpdateUser(c, arg); err != nil {
-		logger.Info().Msgf("UpdateUser: unable to store the updated user in db")
+	if err := s.Store.UpdateUser(c, arg); err != nil {
+		logger.Info().Msgf("UpdateUser: unable to Store the updated user in db")
 		if checkSqlErr(c, err) {
 			return
 		}
 	}
-	logger.Info().Msgf("UpdateUser: successfully stored the updated user %v", arg)
+	logger.Info().Msgf("UpdateUser: successfully Stored the updated user %v", arg)
 
-	updatedUser, err := s.store.GetUser(c, urlReq.Username)
+	updatedUser, err := s.Store.GetUser(c, urlReq.Username)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return

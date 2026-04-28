@@ -10,10 +10,10 @@ import (
 )
 
 type Server struct {
-	store      db.Store
-	tokenMaker token.Maker
-	config     *util.Config
-	router     *gin.Engine
+	Store      db.Store
+	TokenMaker token.Maker
+	Config     *util.Config
+	Router     *gin.Engine
 }
 
 func NewServer(store db.Store, config util.Config) (*Server, error) {
@@ -23,9 +23,9 @@ func NewServer(store db.Store, config util.Config) (*Server, error) {
 	}
 	// defining a server with sb configuration
 	server := &Server{
-		config:     &config,
-		store:      store,
-		tokenMaker: jwtMaker,
+		Config:     &config,
+		Store:      store,
+		TokenMaker: jwtMaker,
 	}
 
 	// registering all custom made validators in gin
@@ -51,7 +51,7 @@ func (s *Server) SetupRoute() {
 	router.POST("/api/v1/users/login", s.LoginUser)
 	router.POST("/api/v1/token/renew", s.RenewUserSession)
 
-	authRouter := router.Group("/").Use(authMiddleware(s.tokenMaker))
+	authRouter := router.Group("/").Use(authMiddleware(s.TokenMaker))
 
 	// authorized routes
 	authRouter.PATCH("/api/v1/users/:username", s.UpdateUser)
@@ -70,11 +70,11 @@ func (s *Server) SetupRoute() {
 	authRouter.GET("/api/v1/users/:username", s.GetUser)
 	authRouter.GET("/api/v1/users", s.GetAllUser)
 
-	s.router = router
+	s.Router = router
 }
 
 func (s *Server) Start(address string) error {
-	return s.router.Run(address)
+	return s.Router.Run(address)
 }
 
 func errorResponse(err error) gin.H {

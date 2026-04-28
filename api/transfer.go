@@ -26,7 +26,7 @@ func (s *Server) TransferMoney(c *gin.Context) {
 
 	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	fromAccount, err := s.store.GetAccount(c, req.FromAccountID)
+	fromAccount, err := s.Store.GetAccount(c, req.FromAccountID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -38,7 +38,7 @@ func (s *Server) TransferMoney(c *gin.Context) {
 		return
 	}
 
-	toAccount, err := s.store.GetAccount(c, req.ToAccountID)
+	toAccount, err := s.Store.GetAccount(c, req.ToAccountID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -55,7 +55,7 @@ func (s *Server) TransferMoney(c *gin.Context) {
 		Amount:        req.Amount,
 	}
 
-	transferRes, err := s.store.TransferTx(c, arg)
+	transferRes, err := s.Store.TransferTx(c, arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to do the transaction: "+err.Error())))
 		return

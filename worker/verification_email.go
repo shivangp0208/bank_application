@@ -90,6 +90,11 @@ func (processor *RedisTaskProcessor) Start() error {
 	return processor.server.Start(asyncMux)
 }
 
+func (processor *RedisTaskProcessor) Shutdown() {
+	logger.Info().Msg("gracefully shutting down the task processor server")
+	processor.server.Shutdown()
+}
+
 func GetVerificationMail(username string, secret string, config *util.Config) (subject string, body string) {
 	subject = "Verify Email For Bank"
 

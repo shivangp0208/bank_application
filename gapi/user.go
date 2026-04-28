@@ -22,6 +22,9 @@ var logger = util.GetLogger()
 
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 
+	logger.Info().Msg(">>> creating user")
+	time.Sleep(10 * time.Second)
+
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
 		logger.Error().Msgf("validation failed for input arguments for create user req")
 		return nil, validator.InvalidArgumentError(violations)

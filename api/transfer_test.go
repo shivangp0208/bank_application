@@ -92,7 +92,7 @@ func TestTransferMoney(t *testing.T) {
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
-			server.router.ServeHTTP(recorder, req)
+			server.Router.ServeHTTP(recorder, req)
 			tc.checkResponse(recorder)
 		})
 	}

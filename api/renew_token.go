@@ -27,13 +27,13 @@ func (s *Server) RenewUserSession(c *gin.Context) {
 		return
 	}
 
-	refreshPayload, err := s.tokenMaker.VerifyToken(req.RefreshToken)
+	refreshPayload, err := s.TokenMaker.VerifyToken(req.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
-	session, err := s.store.GetSession(c, refreshPayload.ID.String())
+	session, err := s.Store.GetSession(c, refreshPayload.ID.String())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -61,7 +61,7 @@ func (s *Server) RenewUserSession(c *gin.Context) {
 		return
 	}
 
-	accessToken, accessPayload, err := s.tokenMaker.CreateToken(refreshPayload.Username, refreshPayload.Role, s.config.AccessTokenExpirationTime)
+	accessToken, accessPayload, err := s.TokenMaker.CreateToken(refreshPayload.Username, refreshPayload.Role, s.Config.AccessTokenExpirationTime)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

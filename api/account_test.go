@@ -93,7 +93,7 @@ func TestGetAccountByID(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
-			server.router.ServeHTTP(recorder, req)
+			server.Router.ServeHTTP(recorder, req)
 			tc.checkResponse(t, recorder)
 		})
 	}

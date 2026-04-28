@@ -30,7 +30,7 @@ func (s *Server) CreateAccount(c *gin.Context) {
 		Currency: req.Currency,
 	}
 
-	res, err := s.store.CreateAccounts(c, arg)
+	res, err := s.Store.CreateAccounts(c, arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -40,7 +40,7 @@ func (s *Server) CreateAccount(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	acount, err := s.store.GetAccount(c, uint64(accountId))
+	acount, err := s.Store.GetAccount(c, uint64(accountId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -62,7 +62,7 @@ func (s *Server) GetAccountByID(c *gin.Context) {
 		return
 	}
 
-	account, err := s.store.GetAccount(c, req.ID)
+	account, err := s.Store.GetAccount(c, req.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -109,7 +109,7 @@ func (s *Server) GetAllAccount(c *gin.Context) {
 		Offset: int32((req.PageNo - 1) * req.PageSize),
 	}
 
-	accounts, err := s.store.ListPagedAccounts(c, arg)
+	accounts, err := s.Store.ListPagedAccounts(c, arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
 		return
@@ -143,7 +143,7 @@ func (s *Server) UpdateAccount(c *gin.Context) {
 
 	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	account, err := s.store.GetAccount(c, reqUri.ID)
+	account, err := s.Store.GetAccount(c, reqUri.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -162,12 +162,12 @@ func (s *Server) UpdateAccount(c *gin.Context) {
 		Currency: reqJson.Currency,
 	}
 
-	if err := s.store.UpdateAccount(c, arg); err != nil {
+	if err := s.Store.UpdateAccount(c, arg); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to update the account detail: "+err.Error())))
 		return
 	}
 
-	updatedAccount, err := s.store.GetAccount(c, reqUri.ID)
+	updatedAccount, err := s.Store.GetAccount(c, reqUri.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to fetch the updated account: "+err.Error())))
 		return
@@ -190,7 +190,7 @@ func (s *Server) DeleteAccount(c *gin.Context) {
 
 	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	account, err := s.store.GetAccount(c, req.ID)
+	account, err := s.Store.GetAccount(c, req.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -202,7 +202,7 @@ func (s *Server) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	if err := s.store.DeleteAccounts(c, req.ID); err != nil {
+	if err := s.Store.DeleteAccounts(c, req.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
