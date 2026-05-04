@@ -7,6 +7,7 @@ grpc is a remote procedure call framework which helps to communicate between dif
 2. The remote interaction code is handled by gRPC
 3. The API & data structure code is automatically generated
 4. supported multiple programming languages
+
 ### How it works?
 1. Define API & data structure
     > The RPC and it's request/response structure are defined using protobuf which conatins the info about req and resp format and service name
@@ -16,11 +17,13 @@ grpc is a remote procedure call framework which helps to communicate between dif
     > Implement the RPC handler on the server side.
 4. Use the client 
     > Use the generated client stubs to call the RPC on the server.
+
 ### 4 Types of gRPC
 1. Unary gRPC: In this the client will sent a single req on which the server will work and give the response back immediately
 2. Client streaming gRPC: In this client will send a streams of req to server and the client is expected to receive a single response from server
 3. Server streaming gRPC: In this client will send a single req on which server will responds with stream of response
 4. Biderctional streaming gRPC: In this client will send a stream of req and server will responds with providing stream of response
+
 ### gRPC Gateway
 - gRPC gateway is a reverse proxy which translates the incoming HTTP req to gRPC req. It is a plugin of protobuf compiler that generates proxy codes from protobuf.
 - It translates HTTP JSON calls to gRPC.
@@ -52,3 +55,16 @@ message User{
 }
 ```
 So protobuf uses the integer for keys which removes the repetation of keys which happens in JSON for a list of data which acquire a big size over network.
+
+## gRPC Client
+grpc client are the ones which make the grpc req to grpc server, now to make this req a grpc client requires either the proto files or the server reflection enabled from the grpc server side, without this it will not be able to make the valid call to the grpc server.
+### Why curl cannot be used in gRPC?
+1. HTTP/2 framing
+
+    As we know that grpc uses HTTP/2 for transfering req and response, now HTTP/2 requires the framing of request in which each message is fixed with a 5-byte header (1 byte for the compression flag and 4 byte for the message length) and atlast the protobuf binary data
+
+2. Binary Protobuf
+
+    curl sends the request in plaintext format it has no way to serialize your input into Protobuf.
+
+    So we use the grpcurl which allow us to make the grpc req to grpc server, but still the grpcurl requires the protobuf schema files or the server grpc reflection enabled to make the request. 

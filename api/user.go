@@ -146,7 +146,7 @@ func (s *Server) GetAllUser(c *gin.Context) {
 
 	arg := db.ListPagedUsersParams{
 		Limit:  int32(req.PageSize),
-		Offset: int32((req.PageNo - 1) * req.PageSize),
+		Offset: int32((req.PageNo) * (req.PageSize + 1)),
 	}
 
 	users, err := s.Store.ListPagedUsers(c, arg)
