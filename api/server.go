@@ -1,31 +1,37 @@
 package api
 
 import (
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/rs/zerolog"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util"
+	"github.com/shivangp0208/bank_application/worker"
 )
 
 type Server struct {
-	Store      db.Store
-	TokenMaker token.Maker
-	Config     *util.Config
-	Router     *gin.Engine
+	Store        db.Store
+	TokenMaker   token.Maker
+	Config       *util.Config
+	Router       *gin.Engine
+	TaskProducer worker.TaskProducer
 }
 
-func NewServer(store db.Store, config util.Config) (*Server, error) {
+func NewServer(store db.Store, config util.Config, producer worker.TaskProducer) (*Server, error) {
 	jwtMaker, err := token.NewJwtMaker(config.AccessTokenSecretKey)
 	if err != nil {
 		return nil, err
 	}
+
 	// defining a server with sb configuration
 	server := &Server{
-		Config:     &config,
-		Store:      store,
-		TokenMaker: jwtMaker,
+		Config:       &config,
+		Store:        store,
+		TokenMaker:   jwtMaker,
+		TaskProducer: producer,
 	}
 
 	// registering all custom made validators in gin
@@ -44,7 +50,11 @@ func NewServer(store db.Store, config util.Config) (*Server, error) {
 // gin.Engine back to Server struct
 func (s *Server) SetupRoute() {
 
-	router := gin.Default()
+	router := gin.New()
+
+	router.Use(logger.SetLogger(logger.WithLogger(func(ctx *gin.Context, l zerolog.Logger) zerolog.Logger {
+		return *myLogger
+	})))
 
 	// unauthorized routes
 	router.POST("/api/v1/users", s.CreateUser)

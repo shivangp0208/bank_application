@@ -24,6 +24,7 @@ const (
 	SimpleBank_UpdateUser_FullMethodName        = "/pb.SimpleBank/UpdateUser"
 	SimpleBank_VerifyUserEmail_FullMethodName   = "/pb.SimpleBank/VerifyUserEmail"
 	SimpleBank_GetUserByUsername_FullMethodName = "/pb.SimpleBank/GetUserByUsername"
+	SimpleBank_GetAllUser_FullMethodName        = "/pb.SimpleBank/GetAllUser"
 )
 
 // SimpleBankClient is the client API for SimpleBank service.
@@ -35,6 +36,7 @@ type SimpleBankClient interface {
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	VerifyUserEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*VerifyEmailResponse, error)
 	GetUserByUsername(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	GetAllUser(ctx context.Context, in *GetAllUserRequest, opts ...grpc.CallOption) (*GetAllUserResponse, error)
 }
 
 type simpleBankClient struct {
@@ -95,6 +97,16 @@ func (c *simpleBankClient) GetUserByUsername(ctx context.Context, in *GetUserReq
 	return out, nil
 }
 
+func (c *simpleBankClient) GetAllUser(ctx context.Context, in *GetAllUserRequest, opts ...grpc.CallOption) (*GetAllUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllUserResponse)
+	err := c.cc.Invoke(ctx, SimpleBank_GetAllUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SimpleBankServer is the server API for SimpleBank service.
 // All implementations must embed UnimplementedSimpleBankServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type SimpleBankServer interface {
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	VerifyUserEmail(context.Context, *VerifyEmailRequest) (*VerifyEmailResponse, error)
 	GetUserByUsername(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetAllUser(context.Context, *GetAllUserRequest) (*GetAllUserResponse, error)
 	mustEmbedUnimplementedSimpleBankServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedSimpleBankServer) VerifyUserEmail(context.Context, *VerifyEma
 }
 func (UnimplementedSimpleBankServer) GetUserByUsername(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserByUsername not implemented")
+}
+func (UnimplementedSimpleBankServer) GetAllUser(context.Context, *GetAllUserRequest) (*GetAllUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllUser not implemented")
 }
 func (UnimplementedSimpleBankServer) mustEmbedUnimplementedSimpleBankServer() {}
 func (UnimplementedSimpleBankServer) testEmbeddedByValue()                    {}
@@ -240,6 +256,24 @@ func _SimpleBank_GetUserByUsername_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SimpleBank_GetAllUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SimpleBankServer).GetAllUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SimpleBank_GetAllUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SimpleBankServer).GetAllUser(ctx, req.(*GetAllUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SimpleBank_ServiceDesc is the grpc.ServiceDesc for SimpleBank service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var SimpleBank_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserByUsername",
 			Handler:    _SimpleBank_GetUserByUsername_Handler,
+		},
+		{
+			MethodName: "GetAllUser",
+			Handler:    _SimpleBank_GetAllUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

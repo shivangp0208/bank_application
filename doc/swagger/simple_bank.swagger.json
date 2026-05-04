@@ -17,6 +17,42 @@
   ],
   "paths": {
     "/api/v1/users": {
+      "get": {
+        "operationId": "SimpleBank_GetAllUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetAllUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "SimpleBank"
+        ]
+      },
       "post": {
         "operationId": "SimpleBank_CreateUser",
         "responses": {
@@ -220,6 +256,18 @@
       "properties": {
         "user": {
           "$ref": "#/definitions/pbUser"
+        }
+      }
+    },
+    "pbGetAllUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbUser"
+          }
         }
       }
     },

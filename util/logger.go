@@ -12,9 +12,9 @@ import (
 
 var logger zerolog.Logger
 
-func GetLogger() zerolog.Logger {
+func GetLogger() *zerolog.Logger {
 	logger = zerolog.New(os.Stderr).With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	return logger
+	return &logger
 }
 
 func GRPCLoggerInterceptor(

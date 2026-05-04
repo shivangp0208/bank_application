@@ -75,7 +75,9 @@ func (processor *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Co
 	subject, msg := GetVerificationMail(createdVerifyEmail.Username, createdVerifyEmail.SecretCode, processor.config)
 
 	// sending the email for verification
-	processor.emailSender.SendEmail(subject, msg, []string{createdVerifyEmail.Email}, nil, nil)
+	if err := processor.emailSender.SendEmail(subject, msg, []string{createdVerifyEmail.Email}, nil, nil); err != nil {
+		return err
+	}
 
 	logger.Info().Str("type", task.Type()).Bytes("payload", task.Payload()).Str("username", user.Email).Msg("successfully processed send verification email")
 

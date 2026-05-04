@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/util"
+	"github.com/shivangp0208/bank_application/worker"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +17,7 @@ func newTestServer(t *testing.T, store db.Store) *Server {
 		AccessTokenSecretKey:      util.GenerateRandomName(32),
 		AccessTokenExpirationTime: time.Minute,
 	}
-	server, err := NewServer(store, config)
+	server, err := NewServer(store, config, &worker.RedisTaskProducer{})
 	require.NoError(t, err)
 
 	return server

@@ -22,9 +22,6 @@ var logger = util.GetLogger()
 
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 
-	logger.Info().Msg(">>> creating user")
-	time.Sleep(10 * time.Second)
-
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
 		logger.Error().Msgf("validation failed for input arguments for create user req")
 		return nil, validator.InvalidArgumentError(violations)
@@ -52,7 +49,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 				asynq.MaxRetry(5),
 				// There is a very big imp of this delay in this task, as the create user task is wrapped inside a transaction with a execTx func so in that first the db call is being made but the user data is still not stored as it will be stored only after committing the transaction, so assume that this execTx took too long to commit the transaction but was able to run the func inside it quickly then if there will be no delay then the process email will throw the error user not found as at that timr the user data is not stored in the db
 				asynq.ProcessIn(10 * time.Second),
-				asynq.Queue(worker.CriticalQueue),
+				asynq.Queue(worker.DefaultQueue),
 			}
 
 			err := s.taskProducer.ProduceSendVerificationEmail(ctx, jsonPayload, opts...)
@@ -257,7 +254,7 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 	return result, nil
 }
 
-func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (res *pb.GetUserResponse, err error) {
+func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	logger.Info().Msgf("GET req to get the user by the user's username %s", req.Username)
 	if err := validator.ValidateUsername(req.GetUsername()); err != nil {
 		logger.Info().Msgf("validation failed for input arguments for get user by username req")
@@ -271,7 +268,7 @@ func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) 
 		return nil, err
 	}
 
-	res = &pb.GetUserResponse{
+	res := &pb.GetUserResponse{
 		User: &pb.User{
 			Username:          user.Username,
 			FullName:          user.FullName,
@@ -282,6 +279,54 @@ func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) 
 			CreatedAt:         timestamppb.New(user.CreatedAt),
 		},
 	}
+
+	return res, nil
+}
+
+func (s *Server) GetAllUser(ctx context.Context, req *pb.GetAllUserRequest) (*pb.GetAllUserResponse, error) {
+
+	payload, err := s.authorizeUser(ctx)
+	if err != nil {
+		logger.Error().Msgf("unable to authorize user's token: %v", err)
+		return nil, err
+	}
+
+	// setting up a default page size
+	if req.PageSize == 0 {
+		req.PageSize = 5
+	}
+	logger.Debug().Msgf("GET req to get all the users info with pageNum %d and pageSize %d", req.PageNum, req.PageSize)
+
+	arg := db.ListPagedUsersParams{
+		Limit:  int32(req.PageSize),
+		Offset: int32(req.PageNum) * int32(req.PageSize+1),
+	}
+
+	userList, err := s.store.ListPagedUsers(ctx, arg)
+	if err != nil {
+		logger.Error().Msgf("unable to get all user details: %v", err)
+		return nil, err
+	}
+	logger.Debug().Msgf("successfully retrieved all user list with length %d", len(userList))
+
+	var pbUserList []*pb.User
+	for _, user := range userList {
+		// we are only going to show the account the full user list, while if any other normal user tries to access this we are going to return only his info
+		if payload.Role == util.Accountant || payload.Username == user.Username {
+			pbUser := &pb.User{
+				Username:          user.Username,
+				FullName:          user.FullName,
+				Email:             user.Email,
+				Role:              user.Role,
+				IsVerified:        user.IsVerified,
+				PasswordChangedAt: timestamppb.New(user.PasswordChangedAt.Time),
+				CreatedAt:         timestamppb.New(user.CreatedAt),
+			}
+			pbUserList = append(pbUserList, pbUser)
+		}
+	}
+
+	res := &pb.GetAllUserResponse{User: pbUserList}
 
 	return res, nil
 }

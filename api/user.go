@@ -9,11 +9,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/util"
+	"github.com/shivangp0208/bank_application/worker"
 )
 
-var logger = util.GetLogger()
+var myLogger = util.GetLogger()
 
 type CreateUserReq struct {
 	Username string `json:"username" binding:"required,alphanum"`
@@ -36,6 +38,7 @@ func getUserResponse(user db.User) UserResponse {
 		Username:          user.Username,
 		FullName:          user.FullName,
 		Email:             user.Email,
+		Role:              user.Role,
 		PasswordChangedAt: user.PasswordChangedAt.Time,
 		CreatedAt:         user.CreatedAt,
 	}
@@ -55,26 +58,39 @@ func (s *Server) CreateUser(c *gin.Context) {
 		return
 	}
 
-	arg := db.CreateUserParams{
-		Username:       req.Username,
-		HashedPassword: userPass,
-		FullName:       req.FullName,
-		Email:          req.Email,
+	arg := db.CreateUserTxParams{
+		User: db.CreateUserParams{
+			Username:       req.Username,
+			HashedPassword: userPass,
+			FullName:       req.FullName,
+			Email:          req.Email,
+		},
+		AfterCreateUser: func(user db.User) error {
+
+			asynqOpts := []asynq.Option{
+				asynq.MaxRetry(5),
+				asynq.ProcessIn(10 * time.Second),
+				asynq.Queue(worker.DefaultQueue),
+			}
+			emailPayload := &worker.EmailDeliveryPayload{
+				Username: req.Username,
+			}
+
+			if err := s.TaskProducer.ProduceSendVerificationEmail(c, emailPayload, asynqOpts...); err != nil {
+				return err
+			}
+
+			return nil
+		},
 	}
 
-	_, err = s.Store.CreateUser(c, arg)
+	txRes, err := s.Store.CreateUserTx(c, arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to create user: "+err.Error())))
 		return
 	}
 
-	createdUser, err := s.Store.GetUser(c, req.Username)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to get the created user: "+err.Error())))
-		return
-	}
-
-	res := getUserResponse(createdUser)
+	res := getUserResponse(txRes.User)
 
 	c.JSON(http.StatusCreated, res)
 }
@@ -91,18 +107,16 @@ func (s *Server) GetUser(c *gin.Context) {
 		return
 	}
 
+	if err := authorizeUser(c, req.username); err != nil {
+		return
+	}
+
 	user, err := s.Store.GetUser(c, req.username)
 	if !checkSqlErr(c, err) {
 		return
 	}
 
-	res := UserResponse{
-		Username:          user.Username,
-		FullName:          user.FullName,
-		Email:             user.Email,
-		PasswordChangedAt: user.PasswordChangedAt.Time,
-		CreatedAt:         user.CreatedAt,
-	}
+	res := getUserResponse(user)
 	c.JSON(http.StatusOK, res)
 }
 
@@ -140,15 +154,9 @@ func (s *Server) GetAllUser(c *gin.Context) {
 		return
 	}
 
-	res := []UserResponse{}
+	var res []UserResponse
 	for _, user := range users {
-		res = append(res, UserResponse{
-			Username:          user.Username,
-			FullName:          user.FullName,
-			Email:             user.Email,
-			PasswordChangedAt: user.PasswordChangedAt.Time,
-			CreatedAt:         user.CreatedAt,
-		})
+		res = append(res, getUserResponse(user))
 	}
 
 	c.JSON(http.StatusOK, res)
@@ -231,8 +239,47 @@ func (s *Server) LoginUser(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+type VerifyUserEmailReq struct {
+	Username   string `form:"username" binding:"required,alphanum,min=2"`
+	SecretCode string `form:"secre_code" binding:"required,min=30"`
+}
+
+type VerifyUserEmailRes struct {
+	Username string `json:"username"`
+	Message  string `json:"message"`
+}
+
+func (s *Server) VerifyUserEmail(c *gin.Context) {
+
+	var req VerifyUserEmailReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	myLogger.Info().Msgf("GET req to verify the email by the user's username %s", req.Username)
+	myLogger.Info().Msgf("validation passed for all input arguments for verify user req")
+
+	// update the db for verify emails by checking all validation
+	verifiedUser, err := s.Store.VerifyUserEmailTx(c, db.VerifyUserTxParams{
+		Username:   req.Username,
+		SecretCode: req.SecretCode,
+	})
+	if err != nil {
+		myLogger.Error().Msgf("unable to verify the user: %v", err)
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	myLogger.Info().Msgf("success verifying user, updated all db records")
+
+	result := &VerifyUserEmailRes{
+		Username: verifiedUser.User.Username,
+		Message:  "User Verified Successfully",
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 type UpdateUserBodyReq struct {
-	Password string `json:"password" binding:"omitempty,min=6"`
 	FullName string `json:"full_name" binding:"omitempty"`
 	Email    string `json:"email" binding:"omitempty,email"`
 }
@@ -242,22 +289,32 @@ type UpdateUserURLReq struct {
 }
 
 func (s *Server) UpdateUser(c *gin.Context) {
-	logger.Println("UpdateUser: PATCH req for updating user")
+	myLogger.Println("UpdateUser: PATCH req for updating user")
+
+	if err := checkForbiddenFields(c, []string{"username", "hashed_password", "password"}); err != nil {
+		myLogger.Info().Msgf("UpdateUser: %v", err)
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	var bodyReq UpdateUserBodyReq
 	var urlReq UpdateUserURLReq
 
 	if err := c.ShouldBindJSON(&bodyReq); err != nil {
-		logger.Println("UpdateUser: unable to validate the JSON body req")
+		myLogger.Println("UpdateUser: unable to validate the JSON body req")
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 	if err := c.ShouldBindUri(&urlReq); err != nil {
-		logger.Println("UpdateUser: unable to validate the URL req")
+		myLogger.Println("UpdateUser: unable to validate the URL req")
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	logger.Println("UpdateUser: successfully validated json body req and url")
+	myLogger.Println("UpdateUser: successfully validated json body req and url")
+
+	if err := authorizeUser(c, urlReq.Username); err != nil {
+		return
+	}
 
 	arg := db.UpdateUserParams{
 		FullName: sql.NullString{
@@ -271,39 +328,40 @@ func (s *Server) UpdateUser(c *gin.Context) {
 		Username: urlReq.Username,
 	}
 
-	if len(bodyReq.Password) > 0 {
-		pass, err := util.GenerateHashPassword(bodyReq.Password)
-		if err != nil {
-			logger.Info().Msgf("UpdateUser: unable to generate the hashed password for given pass %s", bodyReq.Password)
-			c.JSON(http.StatusInternalServerError, errorResponse(err))
-			return
-		}
-		logger.Info().Msgf("UpdateUser: success generating the hashed password %v", arg.HashedPassword.String)
+	// we should not allow the user to change the password from this update user api for security reason
+	// if len(bodyReq.Password) > 0 {
+	// 	pass, err := util.GenerateHashPassword(bodyReq.Password)
+	// 	if err != nil {
+	// 		myLogger.Info().Msgf("UpdateUser: unable to generate the hashed password for given pass %s", bodyReq.Password)
+	// 		c.JSON(http.StatusInternalServerError, errorResponse(err))
+	// 		return
+	// 	}
+	// 	myLogger.Info().Msgf("UpdateUser: success generating the hashed password %v", arg.HashedPassword.String)
 
-		arg.HashedPassword = sql.NullString{
-			String: pass,
-			Valid:  true,
-		}
-		arg.PasswordChangedAt = sql.NullTime{
-			Time:  time.Now(),
-			Valid: true,
-		}
-	}
+	// 	arg.HashedPassword = sql.NullString{
+	// 		String: pass,
+	// 		Valid:  true,
+	// 	}
+	// 	arg.PasswordChangedAt = sql.NullTime{
+	// 		Time:  time.Now(),
+	// 		Valid: true,
+	// 	}
+	// }
 
 	if err := s.Store.UpdateUser(c, arg); err != nil {
-		logger.Info().Msgf("UpdateUser: unable to Store the updated user in db")
+		myLogger.Info().Msgf("UpdateUser: unable to Store the updated user in db")
 		if checkSqlErr(c, err) {
 			return
 		}
 	}
-	logger.Info().Msgf("UpdateUser: successfully Stored the updated user %v", arg)
+	myLogger.Info().Msgf("UpdateUser: successfully Stored the updated user %v", arg)
 
 	updatedUser, err := s.Store.GetUser(c, urlReq.Username)
 	if err != nil {
 		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
-	logger.Info().Msgf("UpdateUser: successfully fetched the updated user %v", updatedUser)
+	myLogger.Info().Msgf("UpdateUser: successfully fetched the updated user %v", updatedUser)
 
 	c.JSON(http.StatusOK, updatedUser)
 }

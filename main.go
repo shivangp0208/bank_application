@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/hibiken/asynq"
@@ -39,6 +40,7 @@ var config util.Config
 var logger = util.GetLogger()
 
 func init() {
+	gin.SetMode(gin.ReleaseMode)
 	config = util.GetConfig()
 	conn, err = sql.Open(config.DBDriver, config.DBSource)
 	logger.Info().Msgf("init main: dbDriver: %s and dbSource: %s", config.DBDriver, config.DBSource)
@@ -65,7 +67,7 @@ func main() {
 	runTaskProcessorServer(ctx, waitGroup, redisOpt, store)
 	startGRPCSever(ctx, waitGroup, store, taskProducer)
 	startGRPCGatewaySever(ctx, waitGroup, store, taskProducer)
-	startGinSever(ctx, waitGroup, store)
+	startGinSever(ctx, waitGroup, store, taskProducer)
 
 	err = waitGroup.Wait()
 	if err != nil {
@@ -95,9 +97,8 @@ func runTaskProcessorServer(ctx context.Context, waitGroup *errgroup.Group, redi
 	})
 }
 
-func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store) {
-func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store) {
-	server, err := api.NewServer(store, config)
+func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store, taskProducer worker.TaskProducer) {
+	server, err := api.NewServer(store, config, taskProducer)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create Gin server due to err %v", err))
 	}
