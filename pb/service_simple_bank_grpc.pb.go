@@ -8,6 +8,7 @@ package pb
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,12 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SimpleBank_CreateUser_FullMethodName        = "/pb.SimpleBank/CreateUser"
-	SimpleBank_LoginUser_FullMethodName         = "/pb.SimpleBank/LoginUser"
-	SimpleBank_UpdateUser_FullMethodName        = "/pb.SimpleBank/UpdateUser"
-	SimpleBank_VerifyUserEmail_FullMethodName   = "/pb.SimpleBank/VerifyUserEmail"
-	SimpleBank_GetUserByUsername_FullMethodName = "/pb.SimpleBank/GetUserByUsername"
-	SimpleBank_GetAllUser_FullMethodName        = "/pb.SimpleBank/GetAllUser"
+	SimpleBank_CreateUser_FullMethodName         = "/pb.SimpleBank/CreateUser"
+	SimpleBank_LoginUser_FullMethodName          = "/pb.SimpleBank/LoginUser"
+	SimpleBank_UpdateUser_FullMethodName         = "/pb.SimpleBank/UpdateUser"
+	SimpleBank_VerifyUserEmail_FullMethodName    = "/pb.SimpleBank/VerifyUserEmail"
+	SimpleBank_GetUserByUsername_FullMethodName  = "/pb.SimpleBank/GetUserByUsername"
+	SimpleBank_GetAllUser_FullMethodName         = "/pb.SimpleBank/GetAllUser"
+	SimpleBank_UpdateUserPassword_FullMethodName = "/pb.SimpleBank/UpdateUserPassword"
 )
 
 // SimpleBankClient is the client API for SimpleBank service.
@@ -37,6 +39,7 @@ type SimpleBankClient interface {
 	VerifyUserEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*VerifyEmailResponse, error)
 	GetUserByUsername(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetAllUser(ctx context.Context, in *GetAllUserRequest, opts ...grpc.CallOption) (*GetAllUserResponse, error)
+	UpdateUserPassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type simpleBankClient struct {
@@ -107,6 +110,16 @@ func (c *simpleBankClient) GetAllUser(ctx context.Context, in *GetAllUserRequest
 	return out, nil
 }
 
+func (c *simpleBankClient) UpdateUserPassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, SimpleBank_UpdateUserPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SimpleBankServer is the server API for SimpleBank service.
 // All implementations must embed UnimplementedSimpleBankServer
 // for forward compatibility.
@@ -117,6 +130,7 @@ type SimpleBankServer interface {
 	VerifyUserEmail(context.Context, *VerifyEmailRequest) (*VerifyEmailResponse, error)
 	GetUserByUsername(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetAllUser(context.Context, *GetAllUserRequest) (*GetAllUserResponse, error)
+	UpdateUserPassword(context.Context, *UpdatePasswordRequest) (*empty.Empty, error)
 	mustEmbedUnimplementedSimpleBankServer()
 }
 
@@ -144,6 +158,9 @@ func (UnimplementedSimpleBankServer) GetUserByUsername(context.Context, *GetUser
 }
 func (UnimplementedSimpleBankServer) GetAllUser(context.Context, *GetAllUserRequest) (*GetAllUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAllUser not implemented")
+}
+func (UnimplementedSimpleBankServer) UpdateUserPassword(context.Context, *UpdatePasswordRequest) (*empty.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUserPassword not implemented")
 }
 func (UnimplementedSimpleBankServer) mustEmbedUnimplementedSimpleBankServer() {}
 func (UnimplementedSimpleBankServer) testEmbeddedByValue()                    {}
@@ -274,6 +291,24 @@ func _SimpleBank_GetAllUser_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SimpleBank_UpdateUserPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SimpleBankServer).UpdateUserPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SimpleBank_UpdateUserPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SimpleBankServer).UpdateUserPassword(ctx, req.(*UpdatePasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SimpleBank_ServiceDesc is the grpc.ServiceDesc for SimpleBank service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +339,10 @@ var SimpleBank_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllUser",
 			Handler:    _SimpleBank_GetAllUser_Handler,
+		},
+		{
+			MethodName: "UpdateUserPassword",
+			Handler:    _SimpleBank_UpdateUserPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

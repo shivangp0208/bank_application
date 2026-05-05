@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shivangp0208/bank_application/pb";
+
+// User Schema
+message User {
+    string username = 1;
+    string full_name = 2;
+    string email = 3;
+    string role = 4;
+    bool is_verified = 5;
+    google.protobuf.Timestamp password_changed_at = 6;
+    google.protobuf.Timestamp created_at = 7;
+}
+
+// Create User Request and Response Schema
+message CreateUserRequest {
+    string username = 1;
+    string password = 2;
+    string full_name = 3;
+    string email = 4;
+}
+message CreateUserResponse {
+    User user = 1;
+}
+
+// Get All User Request and Response Schema
+message GetAllUserRequest {
+    uint32 page_num = 1;
+    uint64 page_size = 2;
+}
+message GetAllUserResponse {
+    repeated User user = 1;
+}
+
+// Get User by Username Request and Response Schema
+message GetUserRequest {
+    string username = 1;
+}
+message GetUserResponse {
+    User user = 1;
+}
+
+// Login User Request and Response Schema
+message LoginUserRequest {
+    string username = 1;
+    string password = 2; 
+}
+message LoginUserResponse {
+    bytes session_id = 1;
+    string access_token = 2;
+    google.protobuf.Timestamp access_token_expires_at = 3;
+    string refresh_token = 4;
+    google.protobuf.Timestamp refresh_token_expires_at = 5;
+    User user = 6; 
+}
+
+// Update User Request and Response Schema
+message UpdateUserRequest {
+    string username = 1;
+    optional string password = 2;
+    optional string full_name = 3;
+    optional string email = 4;
+}
+message UpdateUserResponse {
+    User user = 1; 
+}
+
+// Update User's Password Request and Response Schema
+message UpdatePasswordRequest {
+    string old_password = 1;
+    string new_password = 2;
+}
+
+// Verify User's Email Request and Response Schema
+message VerifyEmailRequest {
+    string username = 1;
+    string secret_code = 2;
+}
+message VerifyEmailResponse {
+    string username = 1;
+    string message = 2;
+}

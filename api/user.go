@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -95,26 +96,38 @@ func (s *Server) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, res)
 }
 
-type GetUserReq struct {
-	username string `uri:"username" binding:"required,alphanum"`
+type UsernameURLReq struct {
+	Username string `uri:"username" binding:"required,alphanum"`
 }
 
 func (s *Server) GetUser(c *gin.Context) {
-	var req GetUserReq
+	myLogger.Info().Msg("GetUser: GET req to get the user detail")
+	var req UsernameURLReq
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBindUri(&req); err != nil {
+		myLogger.Info().Msgf("GetUser: invalid req, unable to validate the req: %v", err)
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	myLogger.Info().Msg("GetUser: success validating get user req")
+
+	payload, err := getPayloadFromToken(c)
+	if err != nil {
+		myLogger.Info().Msg("UpdateUserPassword: unable to get the tokne from req")
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	if err := authorizeUser(c, req.username); err != nil {
+	if err := authorizeUser(c, req.Username, payload); err != nil {
 		return
 	}
+	myLogger.Info().Msg("GetUser: user is authorized")
 
-	user, err := s.Store.GetUser(c, req.username)
+	user, err := s.Store.GetUser(c, req.Username)
 	if !checkSqlErr(c, err) {
 		return
 	}
+	myLogger.Info().Msg("GetUser: success getting user info")
 
 	res := getUserResponse(user)
 	c.JSON(http.StatusOK, res)
@@ -284,12 +297,8 @@ type UpdateUserBodyReq struct {
 	Email    string `json:"email" binding:"omitempty,email"`
 }
 
-type UpdateUserURLReq struct {
-	Username string `uri:"username" binding:"required,alphanum"`
-}
-
 func (s *Server) UpdateUser(c *gin.Context) {
-	myLogger.Println("UpdateUser: PATCH req for updating user")
+	myLogger.Info().Msg("UpdateUser: PATCH req for updating user")
 
 	if err := checkForbiddenFields(c, []string{"username", "hashed_password", "password"}); err != nil {
 		myLogger.Info().Msgf("UpdateUser: %v", err)
@@ -298,21 +307,28 @@ func (s *Server) UpdateUser(c *gin.Context) {
 	}
 
 	var bodyReq UpdateUserBodyReq
-	var urlReq UpdateUserURLReq
+	var urlReq UsernameURLReq
 
 	if err := c.ShouldBindJSON(&bodyReq); err != nil {
-		myLogger.Println("UpdateUser: unable to validate the JSON body req")
+		myLogger.Info().Msg("UpdateUser: unable to validate the JSON body req")
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 	if err := c.ShouldBindUri(&urlReq); err != nil {
-		myLogger.Println("UpdateUser: unable to validate the URL req")
+		myLogger.Info().Msg("UpdateUser: unable to validate the URL req")
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	myLogger.Println("UpdateUser: successfully validated json body req and url")
+	myLogger.Info().Msg("UpdateUser: successfully validated json body req and url")
 
-	if err := authorizeUser(c, urlReq.Username); err != nil {
+	payload, err := getPayloadFromToken(c)
+	if err != nil {
+		myLogger.Info().Msg("UpdateUserPassword: unable to get the tokne from req")
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	if err := authorizeUser(c, urlReq.Username, payload); err != nil {
 		return
 	}
 
@@ -327,26 +343,6 @@ func (s *Server) UpdateUser(c *gin.Context) {
 		},
 		Username: urlReq.Username,
 	}
-
-	// we should not allow the user to change the password from this update user api for security reason
-	// if len(bodyReq.Password) > 0 {
-	// 	pass, err := util.GenerateHashPassword(bodyReq.Password)
-	// 	if err != nil {
-	// 		myLogger.Info().Msgf("UpdateUser: unable to generate the hashed password for given pass %s", bodyReq.Password)
-	// 		c.JSON(http.StatusInternalServerError, errorResponse(err))
-	// 		return
-	// 	}
-	// 	myLogger.Info().Msgf("UpdateUser: success generating the hashed password %v", arg.HashedPassword.String)
-
-	// 	arg.HashedPassword = sql.NullString{
-	// 		String: pass,
-	// 		Valid:  true,
-	// 	}
-	// 	arg.PasswordChangedAt = sql.NullTime{
-	// 		Time:  time.Now(),
-	// 		Valid: true,
-	// 	}
-	// }
 
 	if err := s.Store.UpdateUser(c, arg); err != nil {
 		myLogger.Info().Msgf("UpdateUser: unable to Store the updated user in db")
@@ -366,12 +362,94 @@ func (s *Server) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedUser)
 }
 
+type UpdatePasswordReq struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
+func (s *Server) UpdateUserPassword(c *gin.Context) {
+	myLogger.Info().Msg("UpdateUserPassword: request received")
+
+	var req UpdatePasswordReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		myLogger.Warn().Err(err).Msg("UpdateUserPassword: invalid JSON body")
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	if req.OldPassword == req.NewPassword {
+		myLogger.Warn().Msg("UpdateUserPassword: cannot have same new password as old password")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot have new password same as old password"})
+		return
+	}
+	myLogger.Info().Msg("UpdateUserPassword: request body validated")
+
+	payload, err := getPayloadFromToken(c)
+	if err != nil {
+		myLogger.Error().Err(err).Msg("UpdateUserPassword: failed to extract token payload")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+	myLogger.Info().Msgf("UpdateUserPassword: authenticated user=%s", payload.Username)
+
+	user, err := s.Store.GetUser(c, payload.Username)
+	if err != nil {
+		myLogger.Error().Err(err).Msgf("UpdateUserPassword: failed to fetch user=%s", payload.Username)
+		if checkSqlErr(c, err) {
+			return
+		}
+	}
+	myLogger.Info().Msgf("UpdateUserPassword: user fetched successfully user=%s", payload.Username)
+
+	if err := util.ComparePasswords(user.HashedPassword, req.OldPassword); err != nil {
+		myLogger.Warn().Msgf("UpdateUserPassword: incorrect old password for user=%s", payload.Username)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("incorrect old password for user %s: %v", payload.Username, err)})
+		return
+	}
+	myLogger.Info().Msgf("UpdateUserPassword: old password verified user=%s", payload.Username)
+
+	var arg db.UpdateUserParams
+	arg.Username = user.Username
+
+	if len(req.NewPassword) > 0 {
+		hashedPass, err := util.GenerateHashPassword(req.NewPassword)
+		if err != nil {
+			myLogger.Error().Err(err).Msgf("UpdateUserPassword: failed to hash new password user=%s", payload.Username)
+			c.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		myLogger.Info().Msgf("UpdateUserPassword: new password hashed successfully user=%s", payload.Username)
+
+		arg.HashedPassword = sql.NullString{
+			String: hashedPass,
+			Valid:  true,
+		}
+		arg.PasswordChangedAt = sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		}
+	}
+
+	err = s.Store.UpdateUser(c, arg)
+	if err != nil {
+		myLogger.Error().Err(err).Msgf("UpdateUserPassword: failed to update password in DB user=%s", payload.Username)
+		if checkSqlErr(c, err) {
+			return
+		}
+	}
+
+	myLogger.Info().Msgf("UpdateUserPassword: password updated successfully user=%s", payload.Username)
+	c.Status(http.StatusNoContent)
+}
+
 func checkSqlErr(c *gin.Context, err error) bool {
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
+			myLogger.Error().Msgf("no rows found with the given arg: %v", err)
 			c.JSON(http.StatusNotFound, errorResponse(err))
 			return false
 		}
+		myLogger.Error().Msgf("db internal error: %v", err)
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return false
 	}

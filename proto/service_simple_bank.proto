@@ -2,13 +2,9 @@ syntax = "proto3";
 
 package pb;
 
-import "rpc_create_user.proto";
-import "rpc_login_user.proto";
-import "rpc_update_user.proto";
-import "rpc_verify_email.proto";
-import "rpc_get_user_by_username.proto";
-import "rpc_get_all_user.proto";
+import "rpc_users.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 
 option go_package = "github.com/shivangp0208/bank_application/pb";
 
@@ -44,6 +40,12 @@ service SimpleBank {
     rpc GetAllUser (GetAllUserRequest) returns (GetAllUserResponse) {
         option (google.api.http) = {
             get: "/api/v1/users"
+        };
+    }
+    rpc UpdateUserPassword (UpdatePasswordRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            patch: "/api/v1/users/me/password"
+            body: "*"
         };
     }
 }

@@ -64,7 +64,13 @@ func (s *Server) SetupRoute() {
 	authRouter := router.Group("/").Use(authMiddleware(s.TokenMaker))
 
 	// authorized routes
+	// defining users routes
+	authRouter.GET("/api/v1/users/:username", s.GetUser)
+	authRouter.GET("/api/v1/users", s.GetAllUser)
 	authRouter.PATCH("/api/v1/users/:username", s.UpdateUser)
+	// as the above ones are for both admin level and user level api because in above api we have handle the case of authorization so that one user should not be able to other user's info
+	// so in this api i am using token for getting the username not depending on path url
+	authRouter.PATCH("/api/v1/users/me/password", s.UpdateUserPassword)
 
 	// defining accounts routes
 	authRouter.POST("/api/v1/accounts", s.CreateAccount)
@@ -75,10 +81,6 @@ func (s *Server) SetupRoute() {
 
 	// defining transfer routes
 	authRouter.POST("/api/v1/transfer", s.TransferMoney)
-
-	// defining users routes
-	authRouter.GET("/api/v1/users/:username", s.GetUser)
-	authRouter.GET("/api/v1/users", s.GetAllUser)
 
 	s.Router = router
 }

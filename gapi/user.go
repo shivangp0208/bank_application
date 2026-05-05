@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
@@ -15,6 +16,7 @@ import (
 	"github.com/shivangp0208/bank_application/worker"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -225,12 +227,74 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	return &res, nil
 }
 
+// TODO: create a seperate transactio for updating user's password
+func (s *Server) UpdateUserPassword(ctx context.Context, req *pb.UpdatePasswordRequest) (*empty.Empty, error) {
+	payload, err := s.authorizeUser(ctx)
+	if err != nil {
+		logger.Warn().Msgf("unauthorized user")
+		return nil, status.Errorf(codes.Unauthenticated, "unauthorized user: %v", err)
+	}
+	logger.Info().Msg("authentication and authorization successfull")
+
+	if err := validator.ValidatePassword(req.OldPassword); err != nil {
+		logger.Warn().Msgf("validation failed for old password in req")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	if err := validator.ValidatePassword(req.NewPassword); err != nil {
+		logger.Warn().Msgf("validation failed for new password in req")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if req.OldPassword == req.NewPassword {
+		logger.Warn().Msgf("validation failed for new password in req")
+		return nil, status.Errorf(codes.InvalidArgument, "cannot have new password same as old password")
+	}
+	logger.Info().Msg("successfully validated the user req for updating password")
+
+	user, err := s.store.GetUser(ctx, payload.Username)
+	if ok, err := checkSqlErr(err); !ok {
+		logger.Error().Msg("unable to get the user details from token payload")
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if err := util.ComparePasswords(user.HashedPassword, req.OldPassword); err != nil {
+		logger.Error().Msg("old password does not match with required pass")
+		return nil, status.Errorf(codes.InvalidArgument, "wrong password, old password does not match with required pass")
+	}
+
+	newPass, err := util.GenerateHashPassword(req.NewPassword)
+	if err != nil {
+		logger.Error().Msgf("unable to generate hashed password for new password: %v", err)
+		return nil, status.Errorf(codes.Internal, "unable to generate hashed password for new password: %v", err)
+	}
+
+	var arg db.UpdateUserParams = db.UpdateUserParams{
+		Username: user.Username,
+		HashedPassword: sql.NullString{
+			String: newPass,
+			Valid:  true,
+		},
+		PasswordChangedAt: sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		},
+	}
+
+	if err := s.store.UpdateUser(ctx, arg); err != nil {
+		logger.Error().Msgf("unable to update the user's password %v", err)
+		return nil, status.Errorf(codes.Internal, "unable to update user's password: %v", err)
+	}
+	logger.Info().Msg("successfully updated user's password")
+
+	return &emptypb.Empty{}, nil
+}
+
 func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
 
-	logger.Info().Msgf("GET req to verify the email by the user's username %s", req.Username)
+	logger.Info().Msgf("req to verify the email by the user's username %s", req.Username)
 	// validate all field according to format in the given req
 	if violations := validator.ValidateVerifyUserEmailReq(req); violations != nil {
-		logger.Info().Msgf("validation failed for input arguments for verify user req")
+		logger.Warn().Msgf("validation failed for input arguments for verify user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
 	logger.Info().Msgf("validation passed for all input arguments for verify user req")

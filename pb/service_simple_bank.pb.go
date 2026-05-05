@@ -7,6 +7,7 @@
 package pb
 
 import (
+	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,7 +26,7 @@ var File_service_simple_bank_proto protoreflect.FileDescriptor
 
 const file_service_simple_bank_proto_rawDesc = "" +
 	"\n" +
-	"\x19service_simple_bank.proto\x12\x02pb\x1a\x15rpc_create_user.proto\x1a\x14rpc_login_user.proto\x1a\x15rpc_update_user.proto\x1a\x16rpc_verify_email.proto\x1a\x1erpc_get_user_by_username.proto\x1a\x16rpc_get_all_user.proto\x1a\x1cgoogle/api/annotations.proto2\xaf\x04\n" +
+	"\x19service_simple_bank.proto\x12\x02pb\x1a\x0frpc_users.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto2\x9e\x05\n" +
 	"\n" +
 	"SimpleBank\x12U\n" +
 	"\n" +
@@ -36,21 +37,24 @@ const file_service_simple_bank_proto_rawDesc = "" +
 	"\x0fVerifyUserEmail\x12\x16.pb.VerifyEmailRequest\x1a\x17.pb.VerifyEmailResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/v1/verify\x12^\n" +
 	"\x11GetUserByUsername\x12\x12.pb.GetUserRequest\x1a\x13.pb.GetUserResponse\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/users/{username}\x12R\n" +
 	"\n" +
-	"GetAllUser\x12\x15.pb.GetAllUserRequest\x1a\x16.pb.GetAllUserResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/usersB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
+	"GetAllUser\x12\x15.pb.GetAllUserRequest\x1a\x16.pb.GetAllUserResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12m\n" +
+	"\x12UpdateUserPassword\x12\x19.pb.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"$\x82\xd3\xe4\x93\x02\x1e:\x01*2\x19/api/v1/users/me/passwordB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
 
 var file_service_simple_bank_proto_goTypes = []any{
-	(*CreateUserRequest)(nil),   // 0: pb.CreateUserRequest
-	(*LoginUserRequest)(nil),    // 1: pb.LoginUserRequest
-	(*UpdateUserRequest)(nil),   // 2: pb.UpdateUserRequest
-	(*VerifyEmailRequest)(nil),  // 3: pb.VerifyEmailRequest
-	(*GetUserRequest)(nil),      // 4: pb.GetUserRequest
-	(*GetAllUserRequest)(nil),   // 5: pb.GetAllUserRequest
-	(*CreateUserResponse)(nil),  // 6: pb.CreateUserResponse
-	(*LoginUserResponse)(nil),   // 7: pb.LoginUserResponse
-	(*UpdateUserResponse)(nil),  // 8: pb.UpdateUserResponse
-	(*VerifyEmailResponse)(nil), // 9: pb.VerifyEmailResponse
-	(*GetUserResponse)(nil),     // 10: pb.GetUserResponse
-	(*GetAllUserResponse)(nil),  // 11: pb.GetAllUserResponse
+	(*CreateUserRequest)(nil),     // 0: pb.CreateUserRequest
+	(*LoginUserRequest)(nil),      // 1: pb.LoginUserRequest
+	(*UpdateUserRequest)(nil),     // 2: pb.UpdateUserRequest
+	(*VerifyEmailRequest)(nil),    // 3: pb.VerifyEmailRequest
+	(*GetUserRequest)(nil),        // 4: pb.GetUserRequest
+	(*GetAllUserRequest)(nil),     // 5: pb.GetAllUserRequest
+	(*UpdatePasswordRequest)(nil), // 6: pb.UpdatePasswordRequest
+	(*CreateUserResponse)(nil),    // 7: pb.CreateUserResponse
+	(*LoginUserResponse)(nil),     // 8: pb.LoginUserResponse
+	(*UpdateUserResponse)(nil),    // 9: pb.UpdateUserResponse
+	(*VerifyEmailResponse)(nil),   // 10: pb.VerifyEmailResponse
+	(*GetUserResponse)(nil),       // 11: pb.GetUserResponse
+	(*GetAllUserResponse)(nil),    // 12: pb.GetAllUserResponse
+	(*empty.Empty)(nil),           // 13: google.protobuf.Empty
 }
 var file_service_simple_bank_proto_depIdxs = []int32{
 	0,  // 0: pb.SimpleBank.CreateUser:input_type -> pb.CreateUserRequest
@@ -59,14 +63,16 @@ var file_service_simple_bank_proto_depIdxs = []int32{
 	3,  // 3: pb.SimpleBank.VerifyUserEmail:input_type -> pb.VerifyEmailRequest
 	4,  // 4: pb.SimpleBank.GetUserByUsername:input_type -> pb.GetUserRequest
 	5,  // 5: pb.SimpleBank.GetAllUser:input_type -> pb.GetAllUserRequest
-	6,  // 6: pb.SimpleBank.CreateUser:output_type -> pb.CreateUserResponse
-	7,  // 7: pb.SimpleBank.LoginUser:output_type -> pb.LoginUserResponse
-	8,  // 8: pb.SimpleBank.UpdateUser:output_type -> pb.UpdateUserResponse
-	9,  // 9: pb.SimpleBank.VerifyUserEmail:output_type -> pb.VerifyEmailResponse
-	10, // 10: pb.SimpleBank.GetUserByUsername:output_type -> pb.GetUserResponse
-	11, // 11: pb.SimpleBank.GetAllUser:output_type -> pb.GetAllUserResponse
-	6,  // [6:12] is the sub-list for method output_type
-	0,  // [0:6] is the sub-list for method input_type
+	6,  // 6: pb.SimpleBank.UpdateUserPassword:input_type -> pb.UpdatePasswordRequest
+	7,  // 7: pb.SimpleBank.CreateUser:output_type -> pb.CreateUserResponse
+	8,  // 8: pb.SimpleBank.LoginUser:output_type -> pb.LoginUserResponse
+	9,  // 9: pb.SimpleBank.UpdateUser:output_type -> pb.UpdateUserResponse
+	10, // 10: pb.SimpleBank.VerifyUserEmail:output_type -> pb.VerifyEmailResponse
+	11, // 11: pb.SimpleBank.GetUserByUsername:output_type -> pb.GetUserResponse
+	12, // 12: pb.SimpleBank.GetAllUser:output_type -> pb.GetAllUserResponse
+	13, // 13: pb.SimpleBank.UpdateUserPassword:output_type -> google.protobuf.Empty
+	7,  // [7:14] is the sub-list for method output_type
+	0,  // [0:7] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -77,12 +83,7 @@ func file_service_simple_bank_proto_init() {
 	if File_service_simple_bank_proto != nil {
 		return
 	}
-	file_rpc_create_user_proto_init()
-	file_rpc_login_user_proto_init()
-	file_rpc_update_user_proto_init()
-	file_rpc_verify_email_proto_init()
-	file_rpc_get_user_by_username_proto_init()
-	file_rpc_get_all_user_proto_init()
+	file_rpc_users_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -22,6 +22,9 @@ func (s *Server) authorizeUser(ctx context.Context) (*token.Payload, error) {
 	logger.Debug().Msgf("successfully got the metadata from the incoming context %v", mtdt)
 
 	fields := mtdt.Get(authorizationHeaderKey)
+	if len(fields) == 0 {
+		return nil, fmt.Errorf("no authorization provided in metadata")
+	}
 	authorizationFields := strings.Fields(fields[0])
 	if len(authorizationFields) < 2 {
 		return nil, fmt.Errorf("invalid authorization header format in metadata")

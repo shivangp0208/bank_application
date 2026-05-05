@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "rpc_create_user.proto",
+    "title": "rpc_users.proto",
     "version": "version not set"
   },
   "tags": [
@@ -108,6 +108,39 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/pbLoginUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "SimpleBank"
+        ]
+      }
+    },
+    "/api/v1/users/me/password": {
+      "patch": {
+        "operationId": "SimpleBank_UpdateUserPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbUpdatePasswordRequest"
             }
           }
         ],
@@ -232,7 +265,8 @@
         "email": {
           "type": "string"
         }
-      }
+      },
+      "title": "Update User Request and Response Schema"
     },
     "pbCreateUserRequest": {
       "type": "object",
@@ -249,7 +283,8 @@
         "email": {
           "type": "string"
         }
-      }
+      },
+      "title": "Create User Request and Response Schema"
     },
     "pbCreateUserResponse": {
       "type": "object",
@@ -288,7 +323,8 @@
         "password": {
           "type": "string"
         }
-      }
+      },
+      "title": "Login User Request and Response Schema"
     },
     "pbLoginUserResponse": {
       "type": "object",
@@ -315,6 +351,18 @@
           "$ref": "#/definitions/pbUser"
         }
       }
+    },
+    "pbUpdatePasswordRequest": {
+      "type": "object",
+      "properties": {
+        "oldPassword": {
+          "type": "string"
+        },
+        "newPassword": {
+          "type": "string"
+        }
+      },
+      "title": "Update User's Password Request and Response Schema"
     },
     "pbUpdateUserResponse": {
       "type": "object",
@@ -350,7 +398,8 @@
           "type": "string",
           "format": "date-time"
         }
-      }
+      },
+      "title": "User Schema"
     },
     "pbVerifyEmailResponse": {
       "type": "object",
