@@ -14,7 +14,7 @@ import (
 
 func newTestServer(t *testing.T, store db.Store) *Server {
 	config := util.Config{
-		AccessTokenSecretKey:      util.GenerateRandomName(32),
+		AccessTokenSecretKey:      util.GenerateString(32),
 		AccessTokenExpirationTime: time.Minute,
 	}
 	server, err := NewServer(store, config, &worker.RedisTaskProducer{})

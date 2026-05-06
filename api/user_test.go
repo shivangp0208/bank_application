@@ -17,32 +17,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type eqCreateUserParams struct {
-	arg      db.CreateUserParams
+type eqCreateUserTxParams struct {
+	arg      db.CreateUserTxParams
 	password string
 }
 
-func (e eqCreateUserParams) Matches(x interface{}) bool {
-	arg, ok := x.(db.CreateUserParams)
+func (e eqCreateUserTxParams) Matches(x interface{}) bool {
+	arg, ok := x.(db.CreateUserTxParams)
 	if !ok {
 		return false
 	}
+	arg.AfterCreateUser = nil
 
-	err := util.ComparePasswords(arg.HashedPassword, e.password)
+	err := util.ComparePasswords(arg.User.HashedPassword, e.password)
 	if err != nil {
 		return false
 	}
 
-	e.arg.HashedPassword = arg.HashedPassword
+	e.arg.User.HashedPassword = arg.User.HashedPassword
 	return reflect.DeepEqual(e.arg, arg)
 }
 
-func (e eqCreateUserParams) String() string {
+func (e eqCreateUserTxParams) String() string {
 	return fmt.Sprintf("matches arg %v and password %v", e.arg, e.password)
 }
 
-func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
-	return eqCreateUserParams{arg, password}
+func EqCreateUserParams(arg db.CreateUserTxParams, password string) gomock.Matcher {
+	return eqCreateUserTxParams{arg, password}
 }
 
 func TestCreateUser(t *testing.T) {
@@ -65,29 +66,22 @@ func TestCreateUser(t *testing.T) {
 				"email":     user1.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
-				arg := db.CreateUserParams{
-					Username:       user1.Username,
-					HashedPassword: user1.HashedPassword,
-					FullName:       user1.FullName,
-					Email:          user1.Email,
+				arg := db.CreateUserTxParams{
+					User: db.CreateUserParams{
+						Username:       user1.Username,
+						HashedPassword: user1.HashedPassword,
+						FullName:       user1.FullName,
+						Email:          user1.Email,
+					},
 				}
 				store.
 					EXPECT().
-					CreateUser(gomock.Any(), EqCreateUserParams(arg, user1Pass)).
-					Times(1)
-
-				store.
-					EXPECT().
-					GetUser(gomock.Any(), gomock.Eq(arg.Username)).
+					CreateUserTx(gomock.Any(), EqCreateUserParams(arg, user1Pass)).
 					Times(1).
-					Return(db.User{
-						Username:          arg.Username,
-						HashedPassword:    arg.HashedPassword,
-						FullName:          arg.FullName,
-						Email:             arg.Email,
-						PasswordChangedAt: user1.PasswordChangedAt,
-						CreatedAt:         user1.CreatedAt,
+					Return(db.CreateUserTxResult{
+						User: user1,
 					}, nil)
+
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusCreated, recorder.Code)
@@ -113,6 +107,7 @@ func TestCreateUser(t *testing.T) {
 			url := "/api/v1/users"
 			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
+			request.Header.Set("Content-Type", "application/json")
 
 			server.Router.ServeHTTP(recorder, request)
 			tc.checkResponse(recorder)

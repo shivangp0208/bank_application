@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// addAuthorization is a helper function which takes http req and token maker and claims for token as argument to create and test the token then appending the token to the req's authorization header
 func addAuthorization(t *testing.T, req *http.Request, tokenMaker token.Maker, authorizationType string, username string, role string, duration time.Duration) {
 	token, payload, err := tokenMaker.CreateToken(username, role, duration)
 	require.NoError(t, err)
@@ -24,7 +25,7 @@ func addAuthorization(t *testing.T, req *http.Request, tokenMaker token.Maker, a
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	username := util.GenerateRandomName(8)
+	username := util.GenerateRandomUsername(8)
 
 	testCases := []struct {
 		name          string

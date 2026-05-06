@@ -2,15 +2,18 @@ package api
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	mockdb "github.com/shivangp0208/bank_application/db/mock"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/stretchr/testify/require"
 )
@@ -34,6 +37,7 @@ func TestTransferMoney(t *testing.T) {
 	testCases := []struct {
 		name          string
 		body          gin.H
+		setupAuth     func(t *testing.T, req *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(recorder *httptest.ResponseRecorder)
 	}{
@@ -44,6 +48,9 @@ func TestTransferMoney(t *testing.T) {
 				"toAccountId":   account2.ID,
 				"amount":        amount,
 				"currency":      util.USD,
+			},
+			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, req, tokenMaker, authorizationHeaderType, user1.Username, user1.Role, 15*time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.
@@ -91,6 +98,7 @@ func TestTransferMoney(t *testing.T) {
 			url := "/api/v1/transfer"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
+			tc.setupAuth(t, req, server.TokenMaker)
 
 			server.Router.ServeHTTP(recorder, req)
 			tc.checkResponse(recorder)
@@ -100,15 +108,19 @@ func TestTransferMoney(t *testing.T) {
 }
 
 func randomUser(t *testing.T) (user db.User, password string) {
-	password = util.GenerateRandomName(6)
+	password = util.GenerateString(6)
 	hashedPassword, err := util.GenerateHashPassword(password)
 	require.NoError(t, err)
 
 	user = db.User{
-		Username:       util.GenerateRandomName(6),
-		HashedPassword: hashedPassword,
-		FullName:       util.GenerateRandomName(6),
-		Email:          util.GenerateRandomEmail(),
+		Username:          util.GenerateRandomUsername(6),
+		HashedPassword:    hashedPassword,
+		Role:              util.User,
+		IsVerified:        true,
+		PasswordChangedAt: sql.NullTime{},
+		CreatedAt:         time.Now(),
+		FullName:          util.GenerateRandomFullName(6),
+		Email:             util.GenerateRandomEmail(),
 	}
 	return
 }

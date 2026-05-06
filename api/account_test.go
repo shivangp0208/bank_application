@@ -14,16 +14,19 @@ import (
 	"github.com/golang/mock/gomock"
 	mockdb "github.com/shivangp0208/bank_application/db/mock"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetAccountByID(t *testing.T) {
 
-	account := randomAccount("testUser")
+	username := "testUser"
+	account := randomAccount(username)
 	testCases := []struct {
 		name      string
 		accountId uint64
+		setupAuth func(t *testing.T, req *http.Request, tokenMaker token.Maker)
 		// buildStubs func takes a mock object as arg and configure that mock object
 		// to return a specific response in a particular case to cover all edge case
 		buildStubs func(store *mockdb.MockStore)
@@ -33,8 +36,24 @@ func TestGetAccountByID(t *testing.T) {
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
+			name:      "Unauthenticated",
+			accountId: account.ID,
+			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
+				// no authorization needed
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				// we don't need any stubs in this
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name:      "OK",
 			accountId: account.ID,
+			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, util.User, 15*time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.
 					EXPECT().
@@ -49,6 +68,9 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:      "Invalid ID",
 			accountId: 0,
+			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, util.User, 15*time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.
 					EXPECT().
@@ -61,6 +83,9 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:      "Not Found",
 			accountId: account.ID,
+			setupAuth: func(t *testing.T, req *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, req, tokenMaker, authorizationHeaderType, username, util.User, 15*time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.
 					EXPECT().
@@ -74,7 +99,6 @@ func TestGetAccountByID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			// creating a new gomock controller to control the mock objects like it's scope and lifecycle
 			ctrl := gomock.NewController(t)
@@ -92,6 +116,7 @@ func TestGetAccountByID(t *testing.T) {
 			url := fmt.Sprintf("/api/v1/accounts/%d", tc.accountId)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
+			tc.setupAuth(t, req, server.TokenMaker)
 
 			server.Router.ServeHTTP(recorder, req)
 			tc.checkResponse(t, recorder)

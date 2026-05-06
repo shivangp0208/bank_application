@@ -28,11 +28,15 @@ func generateAmount(min, max int) int {
 	return min + rGen.Intn(max-min+1)
 }
 
-func GenerateRandomName(length int) string {
-	return generateName(length)
+func GenerateRandomUsername(length int) string {
+	return GenerateString(length)
 }
 
-func generateName(length int) string {
+func GenerateRandomFullName(length int) string {
+	return fmt.Sprintf("%s %s", GenerateString(length), GenerateString(length))
+}
+
+func GenerateString(length int) string {
 	var name strings.Builder
 	for range length {
 		randomIndex := rGen.Intn(26)
@@ -46,5 +50,5 @@ func GenerateRandomID() uint64 {
 }
 
 func GenerateRandomEmail() string {
-	return fmt.Sprintf("%s@email.com", GenerateRandomName(6))
+	return fmt.Sprintf("%s@email.com", GenerateString(5))
 }

@@ -9,10 +9,10 @@ import (
 )
 
 func TestJWTMaker(t *testing.T) {
-	jwtMaker, err := NewJwtMaker(util.GenerateRandomName(32))
+	jwtMaker, err := NewJwtMaker(util.GenerateString(32))
 	require.NoError(t, err)
 
-	username := util.GenerateRandomName(8)
+	username := util.GenerateRandomUsername(8)
 	role := util.User
 	duration := time.Minute
 	issuedAt := time.Now()
@@ -34,10 +34,10 @@ func TestJWTMaker(t *testing.T) {
 }
 
 func TestExpiredToken(t *testing.T) {
-	jwtMaker, err := NewJwtMaker(util.GenerateRandomName(32))
+	jwtMaker, err := NewJwtMaker(util.GenerateString(32))
 	require.NoError(t, err)
 
-	username := util.GenerateRandomName(8)
+	username := util.GenerateRandomUsername(8)
 	duration := -time.Second
 	role := util.User
 

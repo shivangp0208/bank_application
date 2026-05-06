@@ -55,7 +55,7 @@ func (processor *RedisTaskProcessor) ProcessSendVerificationEmail(ctx context.Co
 	arg := db.CreateVerifiyEmailParams{
 		Username:   user.Username,
 		Email:      user.Email,
-		SecretCode: util.GenerateRandomName(36),
+		SecretCode: util.GenerateString(36),
 	}
 
 	sqlRes, err := processor.store.CreateVerifiyEmail(ctx, arg)

@@ -47,14 +47,15 @@ func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (Tr
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		// earlier the account updation was at bottom but due to that deadlock was occuring as
-		// in mysql the update query in transaction is alreasy blocking which waits for 50sec
+		// in mysql the update query in transaction is already blocking which waits for 50sec
 		// till other transaction completes it's updation so due to that i moved up the account
-		// updation logic so that lock does not have to wait that much now
-
-		// to counter the deadlock in this situation, the best way is to update the account balance
-		// in consistent order
+		// updation logic so that lock does not have to wait that much now to counter the deadlock
+		// in this situation, the best way is to update the account balance in consistent order
 
 		// checking for accounts status
+		// this conditon for updating account status is to prevent causing deadlock, eg in a situation where
+		// Account A -> Account B and same time Account B -> Account A
+		// in this case now because i am using mysql, it locks the account tabe on any update query by default.
 		if arg.FromAccountID < arg.ToAccountID {
 			err := q.AddAccountBalance(ctx, AddAccountBalanceParams{
 				ID:     arg.FromAccountID,
