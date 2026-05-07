@@ -82,6 +82,10 @@ func (s *Server) SetupRoute() {
 	// defining transfer routes
 	authRouter.POST("/api/v1/transfer", s.TransferMoney)
 
+	// defining entries routes
+	authRouter.GET("/api/v1/accounts/:id/entries", s.GetAllEntryForAccountID)
+	authRouter.GET("/api/v1/entries", s.GetAllEntries)
+
 	s.Router = router
 }
 

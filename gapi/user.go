@@ -306,7 +306,7 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 	})
 	if err != nil {
 		logger.Error().Msgf("unable to verify the user: %v", err)
-		return nil, err
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 	logger.Info().Msgf("success verifying user, updated all db records")
 

@@ -89,3 +89,73 @@ func (q *Queries) ListTransfers(ctx context.Context) ([]Transfer, error) {
 	}
 	return items, nil
 }
+
+const listTransfersFromAccount = `-- name: ListTransfersFromAccount :many
+SELECT id, from_account_id, to_account_id, amount, created_at FROM transfers
+WHERE from_account_id = ?
+ORDER BY id
+`
+
+func (q *Queries) ListTransfersFromAccount(ctx context.Context, fromAccountID uint64) ([]Transfer, error) {
+	rows, err := q.db.QueryContext(ctx, listTransfersFromAccount, fromAccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Transfer{}
+	for rows.Next() {
+		var i Transfer
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromAccountID,
+			&i.ToAccountID,
+			&i.Amount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTransfersToAccount = `-- name: ListTransfersToAccount :many
+SELECT id, from_account_id, to_account_id, amount, created_at FROM transfers
+WHERE to_account_id = ?
+ORDER BY id
+`
+
+func (q *Queries) ListTransfersToAccount(ctx context.Context, toAccountID uint64) ([]Transfer, error) {
+	rows, err := q.db.QueryContext(ctx, listTransfersToAccount, toAccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Transfer{}
+	for rows.Next() {
+		var i Transfer
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromAccountID,
+			&i.ToAccountID,
+			&i.Amount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

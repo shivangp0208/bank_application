@@ -3,6 +3,7 @@ syntax = "proto3";
 package pb;
 
 import "rpc_users.proto";
+import "rpc_entries.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
@@ -45,6 +46,12 @@ service SimpleBank {
     rpc UpdateUserPassword (UpdatePasswordRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
             patch: "/api/v1/users/me/password"
+            body: "*"
+        };
+    }
+    rpc GetAllEntryForAccountID (AccountID) returns (EntryListResponse) {
+        option (google.api.http) = {
+            patch: "/api/v1/accounts/{account_id}/entries"
             body: "*"
         };
     }

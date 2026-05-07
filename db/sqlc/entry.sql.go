@@ -54,6 +54,28 @@ func (q *Queries) GetEntries(ctx context.Context, id uint64) (Entry, error) {
 	return i, err
 }
 
+const getEntriesByAccount = `-- name: GetEntriesByAccount :one
+SELECT id, account_id, amount, created_at FROM entries
+WHERE account_id = ? AND id = ?
+`
+
+type GetEntriesByAccountParams struct {
+	AccountID uint64 `db:"account_id"`
+	ID        uint64 `db:"id"`
+}
+
+func (q *Queries) GetEntriesByAccount(ctx context.Context, arg GetEntriesByAccountParams) (Entry, error) {
+	row := q.db.QueryRowContext(ctx, getEntriesByAccount, arg.AccountID, arg.ID)
+	var i Entry
+	err := row.Scan(
+		&i.ID,
+		&i.AccountID,
+		&i.Amount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listEntries = `-- name: ListEntries :many
 SELECT id, account_id, amount, created_at FROM entries
 ORDER BY id
@@ -61,6 +83,45 @@ ORDER BY id
 
 func (q *Queries) ListEntries(ctx context.Context) ([]Entry, error) {
 	rows, err := q.db.QueryContext(ctx, listEntries)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Entry{}
+	for rows.Next() {
+		var i Entry
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccountID,
+			&i.Amount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEntriesByAccountIdAndUsername = `-- name: ListEntriesByAccountIdAndUsername :many
+SELECT e.id, e.account_id, e.amount, e.created_at FROM entries e 
+INNER JOIN accounts a ON e.account_id = a.id 
+INNER JOIN users u ON u.username = a.owner WHERE u.username = ? AND a.id = ?
+`
+
+type ListEntriesByAccountIdAndUsernameParams struct {
+	Username  string `db:"username"`
+	AccountID uint64 `db:"account_id"`
+}
+
+func (q *Queries) ListEntriesByAccountIdAndUsername(ctx context.Context, arg ListEntriesByAccountIdAndUsernameParams) ([]Entry, error) {
+	rows, err := q.db.QueryContext(ctx, listEntriesByAccountIdAndUsername, arg.Username, arg.AccountID)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,8 +11,8 @@ import (
 )
 
 type TransferMoneyReq struct {
-	FromAccountID uint64 `json:"fromAccountId" binding:"required,min=1"`
-	ToAccountID   uint64 `json:"toAccountId" binding:"required,min=1"`
+	FromAccountID uint64 `json:"from_account_id" binding:"required,min=1"`
+	ToAccountID   uint64 `json:"to_account_id" binding:"required,min=1"`
 	Amount        int64  `json:"amount" binding:"required,min=1"`
 	Currency      string `json:"currency" binding:"required,currency"`
 }
@@ -45,7 +46,7 @@ func (s *Server) TransferMoney(c *gin.Context) {
 	}
 
 	if fromAccount.Currency != toAccount.Currency {
-		c.JSON(http.StatusBadRequest, errors.New("unable to do transaction, currency mismatching between sender and receiver"))
+		c.JSON(http.StatusBadRequest, errorResponse(fmt.Errorf("unable to do transaction, currency mismatching between sender %s and receiver %s", fromAccount.Currency, toAccount.Currency)))
 		return
 	}
 

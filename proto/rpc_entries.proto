@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shivangp0208/bank_application/pb";
+
+message Entry {
+    uint64 id = 1;
+    uint64 account_id = 2;
+    uint64 amount = 3;
+    google.protobuf.Timestamp created_at = 4;
+}
+
+// list all entries by account id schema
+message AccountID {
+    int64 account_id = 1;
+}
+message EntryListResponse {
+    repeated Entry entries = 1;
+}

@@ -145,6 +145,35 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]Account, error) {
 	return items, nil
 }
 
+const listAllAccountIdByUsername = `-- name: ListAllAccountIdByUsername :many
+SELECT a.id FROM accounts a 
+INNER JOIN users u ON a.owner = u.username 
+WHERE u.username = ?
+`
+
+func (q *Queries) ListAllAccountIdByUsername(ctx context.Context, username string) ([]uint64, error) {
+	rows, err := q.db.QueryContext(ctx, listAllAccountIdByUsername, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uint64{}
+	for rows.Next() {
+		var id uint64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPagedAccounts = `-- name: ListPagedAccounts :many
 SELECT id, owner, balance, currency, created_at FROM accounts
 WHERE owner = ?
