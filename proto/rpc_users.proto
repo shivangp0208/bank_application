@@ -17,6 +17,12 @@ message User {
     google.protobuf.Timestamp created_at = 7;
 }
 
+// pagination req
+message PaginationReq {
+    uint32 page_num = 1;
+    uint64 page_size = 2;
+}
+
 // Create User Request and Response Schema
 message CreateUserRequest {
     string username = 1;
@@ -24,25 +30,15 @@ message CreateUserRequest {
     string full_name = 3;
     string email = 4;
 }
-message CreateUserResponse {
-    User user = 1;
-}
 
 // Get All User Request and Response Schema
-message GetAllUserRequest {
-    uint32 page_num = 1;
-    uint64 page_size = 2;
-}
-message GetAllUserResponse {
+message UserListResponse {
     repeated User user = 1;
 }
 
 // Get User by Username Request and Response Schema
 message GetUserRequest {
     string username = 1;
-}
-message GetUserResponse {
-    User user = 1;
 }
 
 // Login User Request and Response Schema
@@ -65,9 +61,6 @@ message UpdateUserRequest {
     optional string password = 2;
     optional string full_name = 3;
     optional string email = 4;
-}
-message UpdateUserResponse {
-    User user = 1; 
 }
 
 // Update User's Password Request and Response Schema

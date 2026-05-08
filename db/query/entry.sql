@@ -8,12 +8,16 @@ WHERE account_id = sqlc.arg(account_id) AND id = ?;
 
 -- name: ListEntries :many
 SELECT * FROM entries
-ORDER BY id;
+ORDER BY id
+LIMIT ?
+OFFSET ?;
 
 -- name: ListEntriesByAccountIdAndUsername :many
 SELECT e.id, e.account_id, e.amount, e.created_at FROM entries e 
 INNER JOIN accounts a ON e.account_id = a.id 
-INNER JOIN users u ON u.username = a.owner WHERE u.username = sqlc.arg(username) AND a.id = sqlc.arg(account_id) ;
+INNER JOIN users u ON u.username = a.owner WHERE u.username = sqlc.arg(username) AND a.id = sqlc.arg(account_id)
+LIMIT ?
+OFFSET ?;
 
 -- name: CreateEntries :execresult
 INSERT INTO entries (

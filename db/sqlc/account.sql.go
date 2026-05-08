@@ -149,10 +149,18 @@ const listAllAccountIdByUsername = `-- name: ListAllAccountIdByUsername :many
 SELECT a.id FROM accounts a 
 INNER JOIN users u ON a.owner = u.username 
 WHERE u.username = ?
+LIMIT ?
+OFFSET ?
 `
 
-func (q *Queries) ListAllAccountIdByUsername(ctx context.Context, username string) ([]uint64, error) {
-	rows, err := q.db.QueryContext(ctx, listAllAccountIdByUsername, username)
+type ListAllAccountIdByUsernameParams struct {
+	Username string `db:"username"`
+	Limit    int32  `db:"limit"`
+	Offset   int32  `db:"offset"`
+}
+
+func (q *Queries) ListAllAccountIdByUsername(ctx context.Context, arg ListAllAccountIdByUsernameParams) ([]uint64, error) {
+	rows, err := q.db.QueryContext(ctx, listAllAccountIdByUsername, arg.Username, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

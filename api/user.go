@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/worker"
 )
@@ -111,12 +112,7 @@ func (s *Server) GetUser(c *gin.Context) {
 	}
 	myLogger.Info().Msg("GetUser: success validating get user req")
 
-	payload, err := getPayloadFromToken(c)
-	if err != nil {
-		myLogger.Info().Msg("UpdateUserPassword: unable to get the tokne from req")
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
+	payload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	if err := authorizeUser(c, req.Username, payload); err != nil {
 		return
@@ -133,13 +129,13 @@ func (s *Server) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-type ListUsersReq struct {
+type ListDataReq struct {
 	PageNo   int `form:"pageNo"`
 	PageSize int `form:"pageSize"`
 }
 
 func (s *Server) GetAllUser(c *gin.Context) {
-	var req ListUsersReq
+	var req ListDataReq
 
 	pageNo := c.Query("pageNo")
 	pageSize := c.Query("pageSize")
@@ -321,12 +317,7 @@ func (s *Server) UpdateUser(c *gin.Context) {
 	}
 	myLogger.Info().Msg("UpdateUser: successfully validated json body req and url")
 
-	payload, err := getPayloadFromToken(c)
-	if err != nil {
-		myLogger.Info().Msg("UpdateUserPassword: unable to get the tokne from req")
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
+	payload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	if err := authorizeUser(c, urlReq.Username, payload); err != nil {
 		return
@@ -383,12 +374,7 @@ func (s *Server) UpdateUserPassword(c *gin.Context) {
 	}
 	myLogger.Info().Msg("UpdateUserPassword: request body validated")
 
-	payload, err := getPayloadFromToken(c)
-	if err != nil {
-		myLogger.Error().Err(err).Msg("UpdateUserPassword: failed to extract token payload")
-		c.JSON(http.StatusUnauthorized, errorResponse(err))
-		return
-	}
+	payload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	myLogger.Info().Msgf("UpdateUserPassword: authenticated user=%s", payload.Username)
 
 	user, err := s.Store.GetUser(c, payload.Username)
@@ -454,4 +440,32 @@ func checkSqlErr(c *gin.Context, err error) bool {
 		return false
 	}
 	return true
+}
+
+func (s *Server) DeleteUser(c *gin.Context) {
+	var req UsernameURLReq
+
+	if err := c.ShouldBindUri(&req); err != nil {
+		myLogger.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	payload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	if payload.Role != util.Accountant && req.Username != payload.Username {
+		myLogger.Error().Str("req_username", req.Username).Str("token_username", payload.Username).Msgf("username mismatch in token and req")
+		err := fmt.Errorf("account doesn't belong to the authenticated user, username mismatch, unauthorized")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	if err := s.Store.DeleteUser(c, payload.Username); err != nil {
+		myLogger.Error().Msgf("unable to delete the user: %v", err)
+		err := fmt.Errorf("unable to delete the user: %v", err)
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

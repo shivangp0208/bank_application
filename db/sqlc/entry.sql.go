@@ -79,10 +79,17 @@ func (q *Queries) GetEntriesByAccount(ctx context.Context, arg GetEntriesByAccou
 const listEntries = `-- name: ListEntries :many
 SELECT id, account_id, amount, created_at FROM entries
 ORDER BY id
+LIMIT ?
+OFFSET ?
 `
 
-func (q *Queries) ListEntries(ctx context.Context) ([]Entry, error) {
-	rows, err := q.db.QueryContext(ctx, listEntries)
+type ListEntriesParams struct {
+	Limit  int32 `db:"limit"`
+	Offset int32 `db:"offset"`
+}
+
+func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error) {
+	rows, err := q.db.QueryContext(ctx, listEntries, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -113,15 +120,24 @@ const listEntriesByAccountIdAndUsername = `-- name: ListEntriesByAccountIdAndUse
 SELECT e.id, e.account_id, e.amount, e.created_at FROM entries e 
 INNER JOIN accounts a ON e.account_id = a.id 
 INNER JOIN users u ON u.username = a.owner WHERE u.username = ? AND a.id = ?
+LIMIT ?
+OFFSET ?
 `
 
 type ListEntriesByAccountIdAndUsernameParams struct {
 	Username  string `db:"username"`
 	AccountID uint64 `db:"account_id"`
+	Limit     int32  `db:"limit"`
+	Offset    int32  `db:"offset"`
 }
 
 func (q *Queries) ListEntriesByAccountIdAndUsername(ctx context.Context, arg ListEntriesByAccountIdAndUsernameParams) ([]Entry, error) {
-	rows, err := q.db.QueryContext(ctx, listEntriesByAccountIdAndUsername, arg.Username, arg.AccountID)
+	rows, err := q.db.QueryContext(ctx, listEntriesByAccountIdAndUsername,
+		arg.Username,
+		arg.AccountID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

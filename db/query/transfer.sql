@@ -4,7 +4,9 @@ WHERE id = ?;
 
 -- name: ListTransfers :many
 SELECT * FROM transfers
-ORDER BY id;
+ORDER BY id
+LIMIT ?
+OFFSET ?;
 
 -- name: CreateTransfers :execresult
 INSERT INTO transfers (

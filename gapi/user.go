@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -22,7 +23,7 @@ import (
 
 var logger = util.GetLogger()
 
-func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
 
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
 		logger.Error().Msgf("validation failed for input arguments for create user req")
@@ -75,16 +76,14 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 		Str("created_at", txRes.User.CreatedAt.String()).
 		Msgf("successfully created user with username %s", txRes.User.Username)
 
-	res := &pb.CreateUserResponse{
-		User: &pb.User{
-			Username:          txRes.User.Username,
-			FullName:          txRes.User.FullName,
-			Email:             txRes.User.Email,
-			Role:              txRes.User.Role,
-			IsVerified:        txRes.User.IsVerified,
-			PasswordChangedAt: timestamppb.New(txRes.User.PasswordChangedAt.Time),
-			CreatedAt:         timestamppb.New(txRes.User.CreatedAt),
-		},
+	res := &pb.User{
+		Username:          txRes.User.Username,
+		FullName:          txRes.User.FullName,
+		Email:             txRes.User.Email,
+		Role:              txRes.User.Role,
+		IsVerified:        txRes.User.IsVerified,
+		PasswordChangedAt: timestamppb.New(txRes.User.PasswordChangedAt.Time),
+		CreatedAt:         timestamppb.New(txRes.User.CreatedAt),
 	}
 
 	return res, nil
@@ -148,7 +147,7 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 	return &res, nil
 }
 
-func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
+func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.User, error) {
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
@@ -212,19 +211,17 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 		return nil, status.Errorf(codes.Internal, "unable to get the updated user: %v", err.Error())
 	}
 
-	res := pb.UpdateUserResponse{
-		User: &pb.User{
-			Username:          updatedUser.Username,
-			FullName:          updatedUser.FullName,
-			Email:             updatedUser.Email,
-			Role:              updatedUser.Role,
-			IsVerified:        updatedUser.IsVerified,
-			PasswordChangedAt: timestamppb.New(updatedUser.PasswordChangedAt.Time),
-			CreatedAt:         timestamppb.New(updatedUser.CreatedAt),
-		},
+	res := &pb.User{
+		Username:          updatedUser.Username,
+		FullName:          updatedUser.FullName,
+		Email:             updatedUser.Email,
+		Role:              updatedUser.Role,
+		IsVerified:        updatedUser.IsVerified,
+		PasswordChangedAt: timestamppb.New(updatedUser.PasswordChangedAt.Time),
+		CreatedAt:         timestamppb.New(updatedUser.CreatedAt),
 	}
 
-	return &res, nil
+	return res, nil
 }
 
 // TODO: create a seperate transactio for updating user's password
@@ -318,7 +315,7 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 	return result, nil
 }
 
-func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
+func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
 	logger.Info().Msgf("GET req to get the user by the user's username %s", req.Username)
 	if err := validator.ValidateUsername(req.GetUsername()); err != nil {
 		logger.Info().Msgf("validation failed for input arguments for get user by username req")
@@ -332,22 +329,20 @@ func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) 
 		return nil, err
 	}
 
-	res := &pb.GetUserResponse{
-		User: &pb.User{
-			Username:          user.Username,
-			FullName:          user.FullName,
-			Email:             user.Email,
-			Role:              user.Role,
-			IsVerified:        user.IsVerified,
-			PasswordChangedAt: timestamppb.New(user.PasswordChangedAt.Time),
-			CreatedAt:         timestamppb.New(user.CreatedAt),
-		},
+	res := &pb.User{
+		Username:          user.Username,
+		FullName:          user.FullName,
+		Email:             user.Email,
+		Role:              user.Role,
+		IsVerified:        user.IsVerified,
+		PasswordChangedAt: timestamppb.New(user.PasswordChangedAt.Time),
+		CreatedAt:         timestamppb.New(user.CreatedAt),
 	}
 
 	return res, nil
 }
 
-func (s *Server) GetAllUser(ctx context.Context, req *pb.GetAllUserRequest) (*pb.GetAllUserResponse, error) {
+func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.UserListResponse, error) {
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
@@ -390,9 +385,37 @@ func (s *Server) GetAllUser(ctx context.Context, req *pb.GetAllUserRequest) (*pb
 		}
 	}
 
-	res := &pb.GetAllUserResponse{User: pbUserList}
+	res := &pb.UserListResponse{User: pbUserList}
 
 	return res, nil
+}
+
+func (s *Server) DeleteUser(ctx context.Context, req *pb.GetUserRequest) (*empty.Empty, error) {
+
+	payload, err := s.authorizeUser(ctx)
+	if err != nil {
+		logger.Error().Msgf("unable to authorize user's token: %v", err)
+		return nil, err
+	}
+
+	if err := validator.ValidateUsername(req.Username); err != nil {
+		logger.Error().Msg(err.Error())
+		return nil, status.Errorf(codes.InvalidArgument, "invalid argument: %v", err.Error())
+	}
+
+	if payload.Role != util.Accountant && req.Username != payload.Username {
+		logger.Error().Str("req_username", req.Username).Str("token_username", payload.Username).Msgf("username mismatch in token and req")
+		err := fmt.Errorf("account doesn't belong to the authenticated user, username mismatch, unauthorized")
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	if err := s.store.DeleteUser(ctx, payload.Username); err != nil {
+		logger.Error().Msgf("unable to delete the user: %v", err)
+		err := fmt.Errorf("unable to delete the user: %v", err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func checkSqlErr(err error) (bool, error) {

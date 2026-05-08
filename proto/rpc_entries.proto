@@ -2,10 +2,12 @@ syntax = "proto3";
 
 package pb;
 
+import "rpc_users.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/shivangp0208/bank_application/pb";
 
+// single entry schema
 message Entry {
     uint64 id = 1;
     uint64 account_id = 2;
@@ -14,8 +16,9 @@ message Entry {
 }
 
 // list all entries by account id schema
-message AccountID {
+message GetAllEntryForAccountIDRequest {
     int64 account_id = 1;
+    PaginationReq pagination = 2;
 }
 message EntryListResponse {
     repeated Entry entries = 1;

@@ -20,7 +20,7 @@ INSERT INTO users (
 );
 
 -- name: DeleteUser :exec
-DELETE FROM users
+DELETE u FROM users u
 WHERE username = ?;
 
 -- name: UpdateUser :exec

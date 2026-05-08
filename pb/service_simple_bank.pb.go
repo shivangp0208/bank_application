@@ -26,38 +26,51 @@ var File_service_simple_bank_proto protoreflect.FileDescriptor
 
 const file_service_simple_bank_proto_rawDesc = "" +
 	"\n" +
-	"\x19service_simple_bank.proto\x12\x02pb\x1a\x0frpc_users.proto\x1a\x11rpc_entries.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto2\x91\x06\n" +
+	"\x19service_simple_bank.proto\x12\x02pb\x1a\x0frpc_users.proto\x1a\x12rpc_accounts.proto\x1a\x11rpc_entries.proto\x1a\x13rpc_transfers.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto2\xd0\n" +
 	"\n" +
-	"SimpleBank\x12U\n" +
 	"\n" +
-	"CreateUser\x12\x15.pb.CreateUserRequest\x1a\x16.pb.CreateUserResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/users\x12X\n" +
-	"\tLoginUser\x12\x14.pb.LoginUserRequest\x1a\x15.pb.LoginUserResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/users/login\x12`\n" +
+	"SimpleBank\x12G\n" +
 	"\n" +
-	"UpdateUser\x12\x15.pb.UpdateUserRequest\x1a\x16.pb.UpdateUserResponse\"#\x82\xd3\xe4\x93\x02\x1d:\x01*2\x18/api/v1/users/{username}\x12Z\n" +
-	"\x0fVerifyUserEmail\x12\x16.pb.VerifyEmailRequest\x1a\x17.pb.VerifyEmailResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/v1/verify\x12^\n" +
-	"\x11GetUserByUsername\x12\x12.pb.GetUserRequest\x1a\x13.pb.GetUserResponse\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/users/{username}\x12R\n" +
+	"CreateUser\x12\x15.pb.CreateUserRequest\x1a\b.pb.User\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/users\x12X\n" +
+	"\tLoginUser\x12\x14.pb.LoginUserRequest\x1a\x15.pb.LoginUserResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/users/login\x12R\n" +
 	"\n" +
-	"GetAllUser\x12\x15.pb.GetAllUserRequest\x1a\x16.pb.GetAllUserResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12m\n" +
-	"\x12UpdateUserPassword\x12\x19.pb.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"$\x82\xd3\xe4\x93\x02\x1e:\x01*2\x19/api/v1/users/me/password\x12q\n" +
-	"\x17GetAllEntryForAccountID\x12\r.pb.AccountID\x1a\x15.pb.EntryListResponse\"0\x82\xd3\xe4\x93\x02*:\x01*2%/api/v1/accounts/{account_id}/entriesB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
+	"UpdateUser\x12\x15.pb.UpdateUserRequest\x1a\b.pb.User\"#\x82\xd3\xe4\x93\x02\x1d:\x01*2\x18/api/v1/users/{username}\x12Z\n" +
+	"\x0fVerifyUserEmail\x12\x16.pb.VerifyEmailRequest\x1a\x17.pb.VerifyEmailResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/v1/verify\x12S\n" +
+	"\x11GetUserByUsername\x12\x12.pb.GetUserRequest\x1a\b.pb.User\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/users/{username}\x12L\n" +
+	"\n" +
+	"GetAllUser\x12\x11.pb.PaginationReq\x1a\x14.pb.UserListResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12m\n" +
+	"\x12UpdateUserPassword\x12\x19.pb.UpdatePasswordRequest\x1a\x16.google.protobuf.Empty\"$\x82\xd3\xe4\x93\x02\x1e:\x01*2\x19/api/v1/users/me/password\x12O\n" +
+	"\n" +
+	"DeleteUser\x12\x12.pb.GetUserRequest\x1a\x16.google.protobuf.Empty\"\x15\x82\xd3\xe4\x93\x02\x0f*\r/api/v1/users\x12\x86\x01\n" +
+	"\x17GetAllEntryForAccountID\x12\".pb.GetAllEntryForAccountIDRequest\x1a\x15.pb.EntryListResponse\"0\x82\xd3\xe4\x93\x02*:\x01*2%/api/v1/accounts/{account_id}/entries\x12R\n" +
+	"\rGetAllEntries\x12\x11.pb.PaginationReq\x1a\x15.pb.EntryListResponse\"\x17\x82\xd3\xe4\x93\x02\x112\x0f/api/v1/entries\x12S\n" +
+	"\rCreateAccount\x12\x18.pb.CreateAccountRequest\x1a\v.pb.Account\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/accounts\x12N\n" +
+	"\x0eGetAccountByID\x12\x10.pb.AccountIDReq\x1a\v.pb.Account\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v1/accounts/{id}\x12M\n" +
+	"\rGetAllAccount\x12\x11.pb.PaginationReq\x1a\x0f.pb.AccountList\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/v1/accounts\x12X\n" +
+	"\rDeleteAccount\x12\x10.pb.AccountIDReq\x1a\x16.google.protobuf.Empty\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/api/v1/accounts/{id}\x12a\n" +
+	"\rTransferMoney\x12\x18.pb.TransferMoneyRequest\x1a\x19.pb.TransferMoneyResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/transferB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
 
 var file_service_simple_bank_proto_goTypes = []any{
-	(*CreateUserRequest)(nil),     // 0: pb.CreateUserRequest
-	(*LoginUserRequest)(nil),      // 1: pb.LoginUserRequest
-	(*UpdateUserRequest)(nil),     // 2: pb.UpdateUserRequest
-	(*VerifyEmailRequest)(nil),    // 3: pb.VerifyEmailRequest
-	(*GetUserRequest)(nil),        // 4: pb.GetUserRequest
-	(*GetAllUserRequest)(nil),     // 5: pb.GetAllUserRequest
-	(*UpdatePasswordRequest)(nil), // 6: pb.UpdatePasswordRequest
-	(*AccountID)(nil),             // 7: pb.AccountID
-	(*CreateUserResponse)(nil),    // 8: pb.CreateUserResponse
-	(*LoginUserResponse)(nil),     // 9: pb.LoginUserResponse
-	(*UpdateUserResponse)(nil),    // 10: pb.UpdateUserResponse
-	(*VerifyEmailResponse)(nil),   // 11: pb.VerifyEmailResponse
-	(*GetUserResponse)(nil),       // 12: pb.GetUserResponse
-	(*GetAllUserResponse)(nil),    // 13: pb.GetAllUserResponse
-	(*empty.Empty)(nil),           // 14: google.protobuf.Empty
-	(*EntryListResponse)(nil),     // 15: pb.EntryListResponse
+	(*CreateUserRequest)(nil),              // 0: pb.CreateUserRequest
+	(*LoginUserRequest)(nil),               // 1: pb.LoginUserRequest
+	(*UpdateUserRequest)(nil),              // 2: pb.UpdateUserRequest
+	(*VerifyEmailRequest)(nil),             // 3: pb.VerifyEmailRequest
+	(*GetUserRequest)(nil),                 // 4: pb.GetUserRequest
+	(*PaginationReq)(nil),                  // 5: pb.PaginationReq
+	(*UpdatePasswordRequest)(nil),          // 6: pb.UpdatePasswordRequest
+	(*GetAllEntryForAccountIDRequest)(nil), // 7: pb.GetAllEntryForAccountIDRequest
+	(*CreateAccountRequest)(nil),           // 8: pb.CreateAccountRequest
+	(*AccountIDReq)(nil),                   // 9: pb.AccountIDReq
+	(*TransferMoneyRequest)(nil),           // 10: pb.TransferMoneyRequest
+	(*User)(nil),                           // 11: pb.User
+	(*LoginUserResponse)(nil),              // 12: pb.LoginUserResponse
+	(*VerifyEmailResponse)(nil),            // 13: pb.VerifyEmailResponse
+	(*UserListResponse)(nil),               // 14: pb.UserListResponse
+	(*empty.Empty)(nil),                    // 15: google.protobuf.Empty
+	(*EntryListResponse)(nil),              // 16: pb.EntryListResponse
+	(*Account)(nil),                        // 17: pb.Account
+	(*AccountList)(nil),                    // 18: pb.AccountList
+	(*TransferMoneyResponse)(nil),          // 19: pb.TransferMoneyResponse
 }
 var file_service_simple_bank_proto_depIdxs = []int32{
 	0,  // 0: pb.SimpleBank.CreateUser:input_type -> pb.CreateUserRequest
@@ -65,19 +78,33 @@ var file_service_simple_bank_proto_depIdxs = []int32{
 	2,  // 2: pb.SimpleBank.UpdateUser:input_type -> pb.UpdateUserRequest
 	3,  // 3: pb.SimpleBank.VerifyUserEmail:input_type -> pb.VerifyEmailRequest
 	4,  // 4: pb.SimpleBank.GetUserByUsername:input_type -> pb.GetUserRequest
-	5,  // 5: pb.SimpleBank.GetAllUser:input_type -> pb.GetAllUserRequest
+	5,  // 5: pb.SimpleBank.GetAllUser:input_type -> pb.PaginationReq
 	6,  // 6: pb.SimpleBank.UpdateUserPassword:input_type -> pb.UpdatePasswordRequest
-	7,  // 7: pb.SimpleBank.GetAllEntryForAccountID:input_type -> pb.AccountID
-	8,  // 8: pb.SimpleBank.CreateUser:output_type -> pb.CreateUserResponse
-	9,  // 9: pb.SimpleBank.LoginUser:output_type -> pb.LoginUserResponse
-	10, // 10: pb.SimpleBank.UpdateUser:output_type -> pb.UpdateUserResponse
-	11, // 11: pb.SimpleBank.VerifyUserEmail:output_type -> pb.VerifyEmailResponse
-	12, // 12: pb.SimpleBank.GetUserByUsername:output_type -> pb.GetUserResponse
-	13, // 13: pb.SimpleBank.GetAllUser:output_type -> pb.GetAllUserResponse
-	14, // 14: pb.SimpleBank.UpdateUserPassword:output_type -> google.protobuf.Empty
-	15, // 15: pb.SimpleBank.GetAllEntryForAccountID:output_type -> pb.EntryListResponse
-	8,  // [8:16] is the sub-list for method output_type
-	0,  // [0:8] is the sub-list for method input_type
+	4,  // 7: pb.SimpleBank.DeleteUser:input_type -> pb.GetUserRequest
+	7,  // 8: pb.SimpleBank.GetAllEntryForAccountID:input_type -> pb.GetAllEntryForAccountIDRequest
+	5,  // 9: pb.SimpleBank.GetAllEntries:input_type -> pb.PaginationReq
+	8,  // 10: pb.SimpleBank.CreateAccount:input_type -> pb.CreateAccountRequest
+	9,  // 11: pb.SimpleBank.GetAccountByID:input_type -> pb.AccountIDReq
+	5,  // 12: pb.SimpleBank.GetAllAccount:input_type -> pb.PaginationReq
+	9,  // 13: pb.SimpleBank.DeleteAccount:input_type -> pb.AccountIDReq
+	10, // 14: pb.SimpleBank.TransferMoney:input_type -> pb.TransferMoneyRequest
+	11, // 15: pb.SimpleBank.CreateUser:output_type -> pb.User
+	12, // 16: pb.SimpleBank.LoginUser:output_type -> pb.LoginUserResponse
+	11, // 17: pb.SimpleBank.UpdateUser:output_type -> pb.User
+	13, // 18: pb.SimpleBank.VerifyUserEmail:output_type -> pb.VerifyEmailResponse
+	11, // 19: pb.SimpleBank.GetUserByUsername:output_type -> pb.User
+	14, // 20: pb.SimpleBank.GetAllUser:output_type -> pb.UserListResponse
+	15, // 21: pb.SimpleBank.UpdateUserPassword:output_type -> google.protobuf.Empty
+	15, // 22: pb.SimpleBank.DeleteUser:output_type -> google.protobuf.Empty
+	16, // 23: pb.SimpleBank.GetAllEntryForAccountID:output_type -> pb.EntryListResponse
+	16, // 24: pb.SimpleBank.GetAllEntries:output_type -> pb.EntryListResponse
+	17, // 25: pb.SimpleBank.CreateAccount:output_type -> pb.Account
+	17, // 26: pb.SimpleBank.GetAccountByID:output_type -> pb.Account
+	18, // 27: pb.SimpleBank.GetAllAccount:output_type -> pb.AccountList
+	15, // 28: pb.SimpleBank.DeleteAccount:output_type -> google.protobuf.Empty
+	19, // 29: pb.SimpleBank.TransferMoney:output_type -> pb.TransferMoneyResponse
+	15, // [15:30] is the sub-list for method output_type
+	0,  // [0:15] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -89,7 +116,9 @@ func file_service_simple_bank_proto_init() {
 		return
 	}
 	file_rpc_users_proto_init()
+	file_rpc_accounts_proto_init()
 	file_rpc_entries_proto_init()
+	file_rpc_transfers_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

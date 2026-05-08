@@ -376,7 +376,7 @@ func (mr *MockStoreMockRecorder) ListAccounts(arg0 interface{}) *gomock.Call {
 }
 
 // ListAllAccountIdByUsername mocks base method.
-func (m *MockStore) ListAllAccountIdByUsername(arg0 context.Context, arg1 string) ([]uint64, error) {
+func (m *MockStore) ListAllAccountIdByUsername(arg0 context.Context, arg1 db.ListAllAccountIdByUsernameParams) ([]uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllAccountIdByUsername", arg0, arg1)
 	ret0, _ := ret[0].([]uint64)
@@ -391,18 +391,18 @@ func (mr *MockStoreMockRecorder) ListAllAccountIdByUsername(arg0, arg1 interface
 }
 
 // ListEntries mocks base method.
-func (m *MockStore) ListEntries(arg0 context.Context) ([]db.Entry, error) {
+func (m *MockStore) ListEntries(arg0 context.Context, arg1 db.ListEntriesParams) ([]db.Entry, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListEntries", arg0)
+	ret := m.ctrl.Call(m, "ListEntries", arg0, arg1)
 	ret0, _ := ret[0].([]db.Entry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListEntries indicates an expected call of ListEntries.
-func (mr *MockStoreMockRecorder) ListEntries(arg0 interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListEntries(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEntries", reflect.TypeOf((*MockStore)(nil).ListEntries), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEntries", reflect.TypeOf((*MockStore)(nil).ListEntries), arg0, arg1)
 }
 
 // ListEntriesByAccountIdAndUsername mocks base method.
@@ -451,48 +451,18 @@ func (mr *MockStoreMockRecorder) ListPagedUsers(arg0, arg1 interface{}) *gomock.
 }
 
 // ListTransfers mocks base method.
-func (m *MockStore) ListTransfers(arg0 context.Context) ([]db.Transfer, error) {
+func (m *MockStore) ListTransfers(arg0 context.Context, arg1 db.ListTransfersParams) ([]db.Transfer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTransfers", arg0)
+	ret := m.ctrl.Call(m, "ListTransfers", arg0, arg1)
 	ret0, _ := ret[0].([]db.Transfer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListTransfers indicates an expected call of ListTransfers.
-func (mr *MockStoreMockRecorder) ListTransfers(arg0 interface{}) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListTransfers(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0)
-}
-
-// ListTransfersFromAccount mocks base method.
-func (m *MockStore) ListTransfersFromAccount(arg0 context.Context, arg1 uint64) ([]db.Transfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTransfersFromAccount", arg0, arg1)
-	ret0, _ := ret[0].([]db.Transfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListTransfersFromAccount indicates an expected call of ListTransfersFromAccount.
-func (mr *MockStoreMockRecorder) ListTransfersFromAccount(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfersFromAccount", reflect.TypeOf((*MockStore)(nil).ListTransfersFromAccount), arg0, arg1)
-}
-
-// ListTransfersToAccount mocks base method.
-func (m *MockStore) ListTransfersToAccount(arg0 context.Context, arg1 uint64) ([]db.Transfer, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTransfersToAccount", arg0, arg1)
-	ret0, _ := ret[0].([]db.Transfer)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListTransfersToAccount indicates an expected call of ListTransfersToAccount.
-func (mr *MockStoreMockRecorder) ListTransfersToAccount(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfersToAccount", reflect.TypeOf((*MockStore)(nil).ListTransfersToAccount), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransfers", reflect.TypeOf((*MockStore)(nil).ListTransfers), arg0, arg1)
 }
 
 // ListUsers mocks base method.

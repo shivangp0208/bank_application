@@ -71,12 +71,13 @@ func (s *Server) SetupRoute() {
 	// as the above ones are for both admin level and user level api because in above api we have handle the case of authorization so that one user should not be able to other user's info
 	// so in this api i am using token for getting the username not depending on path url
 	authRouter.PATCH("/api/v1/users/me/password", s.UpdateUserPassword)
+	authRouter.DELETE("/api/v1/users/:username", s.DeleteUser)
 
 	// defining accounts routes
 	authRouter.POST("/api/v1/accounts", s.CreateAccount)
 	authRouter.GET("/api/v1/accounts/:id", s.GetAccountByID)
 	authRouter.GET("/api/v1/accounts", s.GetAllAccount)
-	authRouter.PUT("/api/v1/accounts/:id", s.UpdateAccount)
+	// authRouter.PUT("/api/v1/accounts/:id", s.UpdateAccount)
 	authRouter.DELETE("/api/v1/accounts/:id", s.DeleteAccount)
 
 	// defining transfer routes

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -69,9 +68,7 @@ func (s *Server) GetAccountByID(c *gin.Context) {
 	}
 
 	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
-	if account.Owner != authPayload.Username {
-		err := errors.New("account doesn't belong to the authenticated user")
-		c.JSON(http.StatusUnauthorized, errorResponse(err))
+	if err := authorizeUser(c, account.Owner, authPayload); err != nil {
 		return
 	}
 
@@ -118,63 +115,59 @@ func (s *Server) GetAllAccount(c *gin.Context) {
 	c.JSON(http.StatusOK, accounts)
 }
 
-type UpdateAccountReqURI struct {
-	ID uint64 `uri:"id" binding:"required,min=1"`
-}
-type UpdateAccountReqJSON struct {
-	Owner    string `json:"owner" binding:"required,min=2"`
-	Balance  int64  `json:"balance" binding:"required,min=0"`
-	Currency string `json:"currency" binding:"required,currency"`
-}
+// type UpdateAccountReqURI struct {
+// 	ID uint64 `uri:"id" binding:"required,min=1"`
+// }
+// type UpdateAccountReqJSON struct {
+// 	Owner    string `json:"owner" binding:"required,min=2"`
+// 	Currency string `json:"currency" binding:"required,currency"`
+// }
 
-func (s *Server) UpdateAccount(c *gin.Context) {
-	var reqUri UpdateAccountReqURI
-	var reqJson UpdateAccountReqJSON
+// func (s *Server) UpdateAccount(c *gin.Context) {
+// 	var reqUri UpdateAccountReqURI
+// 	var reqJson UpdateAccountReqJSON
 
-	if err := c.ShouldBindUri(&reqUri); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(errors.New("unable to bind the id from the path uri: "+err.Error())))
-		return
-	}
+// 	if err := c.ShouldBindUri(&reqUri); err != nil {
+// 		c.JSON(http.StatusBadRequest, errorResponse(errors.New("unable to bind the id from the path uri: "+err.Error())))
+// 		return
+// 	}
 
-	if err := c.ShouldBindJSON(&reqJson); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(errors.New("unable to bind the json object from request body: "+err.Error())))
-		return
-	}
+// 	if err := c.ShouldBindJSON(&reqJson); err != nil {
+// 		c.JSON(http.StatusBadRequest, errorResponse(errors.New("unable to bind the json object from request body: "+err.Error())))
+// 		return
+// 	}
 
-	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+// 	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	account, err := s.Store.GetAccount(c, reqUri.ID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, errorResponse(err))
-		return
-	}
+// 	account, err := s.Store.GetAccount(c, reqUri.ID)
+// 	if err != nil {
+// 		c.JSON(http.StatusNotFound, errorResponse(err))
+// 		return
+// 	}
 
-	if authPayload.Username != account.Owner {
-		err := errors.New("account doesn't belong to the authenticated user")
-		c.JSON(http.StatusUnauthorized, errorResponse(err))
-		return
-	}
+// 	if err := authorizeUser(c, account.Owner, authPayload); err != nil {
+// 		return
+// 	}
 
-	arg := db.UpdateAccountParams{
-		ID:       reqUri.ID,
-		Owner:    authPayload.Username,
-		Balance:  reqJson.Balance,
-		Currency: reqJson.Currency,
-	}
+// 	arg := db.UpdateAccountParams{
+// 		ID:       reqUri.ID,
+// 		Owner:    authPayload.Username,
+// 		Currency: reqJson.Currency,
+// 	}
 
-	if err := s.Store.UpdateAccount(c, arg); err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to update the account detail: "+err.Error())))
-		return
-	}
+// 	if err := s.Store.UpdateAccount(c, arg); err != nil {
+// 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to update the account detail: "+err.Error())))
+// 		return
+// 	}
 
-	updatedAccount, err := s.Store.GetAccount(c, reqUri.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to fetch the updated account: "+err.Error())))
-		return
-	}
+// 	updatedAccount, err := s.Store.GetAccount(c, reqUri.ID)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, errorResponse(errors.New("unable to fetch the updated account: "+err.Error())))
+// 		return
+// 	}
 
-	c.JSON(http.StatusCreated, updatedAccount)
-}
+// 	c.JSON(http.StatusCreated, updatedAccount)
+// }
 
 type DeleteAccountReq struct {
 	ID uint64 `uri:"id" binding:"required,min=1"`
@@ -196,9 +189,7 @@ func (s *Server) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	if authPayload.Username != account.Owner {
-		err := errors.New("account doesn't belong to the authenticated user")
-		c.JSON(http.StatusUnauthorized, errorResponse(err))
+	if err := authorizeUser(c, account.Owner, authPayload); err != nil {
 		return
 	}
 

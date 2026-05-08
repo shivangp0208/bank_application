@@ -22,6 +22,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// single entry schema
 type Entry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -91,27 +92,28 @@ func (x *Entry) GetCreatedAt() *timestamp.Timestamp {
 }
 
 // list all entries by account id schema
-type AccountID struct {
+type GetAllEntryForAccountIDRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     int64                  `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	Pagination    *PaginationReq         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AccountID) Reset() {
-	*x = AccountID{}
+func (x *GetAllEntryForAccountIDRequest) Reset() {
+	*x = GetAllEntryForAccountIDRequest{}
 	mi := &file_rpc_entries_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AccountID) String() string {
+func (x *GetAllEntryForAccountIDRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AccountID) ProtoMessage() {}
+func (*GetAllEntryForAccountIDRequest) ProtoMessage() {}
 
-func (x *AccountID) ProtoReflect() protoreflect.Message {
+func (x *GetAllEntryForAccountIDRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_rpc_entries_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -123,16 +125,23 @@ func (x *AccountID) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AccountID.ProtoReflect.Descriptor instead.
-func (*AccountID) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetAllEntryForAccountIDRequest.ProtoReflect.Descriptor instead.
+func (*GetAllEntryForAccountIDRequest) Descriptor() ([]byte, []int) {
 	return file_rpc_entries_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *AccountID) GetAccountId() int64 {
+func (x *GetAllEntryForAccountIDRequest) GetAccountId() int64 {
 	if x != nil {
 		return x.AccountId
 	}
 	return 0
+}
+
+func (x *GetAllEntryForAccountIDRequest) GetPagination() *PaginationReq {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
 }
 
 type EntryListResponse struct {
@@ -183,17 +192,20 @@ var File_rpc_entries_proto protoreflect.FileDescriptor
 
 const file_rpc_entries_proto_rawDesc = "" +
 	"\n" +
-	"\x11rpc_entries.proto\x12\x02pb\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x01\n" +
+	"\x11rpc_entries.proto\x12\x02pb\x1a\x0frpc_users.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x01\n" +
 	"\x05Entry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x02 \x01(\x04R\taccountId\x12\x16\n" +
 	"\x06amount\x18\x03 \x01(\x04R\x06amount\x129\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"*\n" +
-	"\tAccountID\x12\x1d\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"r\n" +
+	"\x1eGetAllEntryForAccountIDRequest\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\x03R\taccountId\"8\n" +
+	"account_id\x18\x01 \x01(\x03R\taccountId\x121\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2\x11.pb.PaginationReqR\n" +
+	"pagination\"8\n" +
 	"\x11EntryListResponse\x12#\n" +
 	"\aentries\x18\x01 \x03(\v2\t.pb.EntryR\aentriesB-Z+github.com/shivangp0208/bank_application/pbb\x06proto3"
 
@@ -211,19 +223,21 @@ func file_rpc_entries_proto_rawDescGZIP() []byte {
 
 var file_rpc_entries_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_rpc_entries_proto_goTypes = []any{
-	(*Entry)(nil),               // 0: pb.Entry
-	(*AccountID)(nil),           // 1: pb.AccountID
-	(*EntryListResponse)(nil),   // 2: pb.EntryListResponse
-	(*timestamp.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*Entry)(nil),                          // 0: pb.Entry
+	(*GetAllEntryForAccountIDRequest)(nil), // 1: pb.GetAllEntryForAccountIDRequest
+	(*EntryListResponse)(nil),              // 2: pb.EntryListResponse
+	(*timestamp.Timestamp)(nil),            // 3: google.protobuf.Timestamp
+	(*PaginationReq)(nil),                  // 4: pb.PaginationReq
 }
 var file_rpc_entries_proto_depIdxs = []int32{
 	3, // 0: pb.Entry.created_at:type_name -> google.protobuf.Timestamp
-	0, // 1: pb.EntryListResponse.entries:type_name -> pb.Entry
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 1: pb.GetAllEntryForAccountIDRequest.pagination:type_name -> pb.PaginationReq
+	0, // 2: pb.EntryListResponse.entries:type_name -> pb.Entry
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_rpc_entries_proto_init() }
@@ -231,6 +245,7 @@ func file_rpc_entries_proto_init() {
 	if File_rpc_entries_proto != nil {
 		return
 	}
+	file_rpc_users_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

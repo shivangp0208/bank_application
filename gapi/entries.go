@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.AccountID) (*pb.EntryListResponse, error) {
+func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.GetAllEntryForAccountIDRequest) (*pb.EntryListResponse, error) {
 	logger.Info().Msgf("GetAllEntryForAccountID called with account_id: %d", req.AccountId)
 
 	payload, err := s.authorizeUser(ctx)
@@ -34,7 +34,10 @@ func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.AccountID)
 	if payload.Role != util.Accountant {
 		logger.Info().Msgf("user %s is not an accountant, checking account ownership", payload.Username)
 
-		accountList, err := s.store.ListAllAccountIdByUsername(ctx, payload.Username)
+		arg := db.ListAllAccountIdByUsernameParams{
+			Username: payload.Username,
+		}
+		accountList, err := s.store.ListAllAccountIdByUsername(ctx, arg)
 		if err != nil {
 			err = errors.Join(fmt.Errorf("error getting the list of accounts for username %s: ", payload.Username), err)
 			return nil, status.Error(codes.Internal, err.Error())
@@ -75,5 +78,49 @@ func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.AccountID)
 	}
 
 	logger.Info().Msgf("GetAllEntryForAccountID completed successfully for account_id: %d, returning %d entries", req.AccountId, len(res.Entries))
+	return res, nil
+}
+
+func (s *Server) GetAllEntries(ctx context.Context, req *pb.PaginationReq) (*pb.EntryListResponse, error) {
+
+	payload, err := s.authorizeUser(ctx)
+	if err != nil {
+		logger.Error().Msgf("unauthenticated req error %v", err)
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	logger.Info().Msgf("authorized user: %s with role: %s", payload.Username, payload.Role)
+
+	if req.PageSize == 0 {
+		req.PageSize = 10
+	}
+
+	if payload.Role != util.Accountant {
+		err := fmt.Errorf("user %s is not allowed to see the entries for all accounts", payload.Username)
+		logger.Error().Msgf("unauthenticated req error %v", err)
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	arg := db.ListEntriesParams{
+		Limit:  int32(req.PageSize),
+		Offset: int32((uint64(req.PageNum)) * (req.PageSize + 1)),
+	}
+	entryList, err := s.store.ListEntries(ctx, arg)
+	if err != nil {
+		err = errors.Join(fmt.Errorf("error getting the list of entries: "), err)
+		logger.Error().Msgf("unable to get the list of entries: %v", err)
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	res := &pb.EntryListResponse{}
+	for _, entry := range entryList {
+		pbEntry := &pb.Entry{
+			Id:        entry.ID,
+			AccountId: entry.AccountID,
+			Amount:    uint64(entry.Amount),
+			CreatedAt: timestamppb.New(entry.CreatedAt),
+		}
+		res.Entries = append(res.Entries, pbEntry)
+	}
+
 	return res, nil
 }

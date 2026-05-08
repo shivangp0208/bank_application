@@ -35,7 +35,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users
+DELETE u FROM users u
 WHERE username = ?
 `
 

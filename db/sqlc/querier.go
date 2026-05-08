@@ -32,14 +32,12 @@ type Querier interface {
 	GetVerifiyEmail(ctx context.Context, id uint64) (VerifyEmail, error)
 	GetVerifiyEmailByUsername(ctx context.Context, username string) (VerifyEmail, error)
 	ListAccounts(ctx context.Context) ([]Account, error)
-	ListAllAccountIdByUsername(ctx context.Context, username string) ([]uint64, error)
-	ListEntries(ctx context.Context) ([]Entry, error)
+	ListAllAccountIdByUsername(ctx context.Context, arg ListAllAccountIdByUsernameParams) ([]uint64, error)
+	ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error)
 	ListEntriesByAccountIdAndUsername(ctx context.Context, arg ListEntriesByAccountIdAndUsernameParams) ([]Entry, error)
 	ListPagedAccounts(ctx context.Context, arg ListPagedAccountsParams) ([]Account, error)
 	ListPagedUsers(ctx context.Context, arg ListPagedUsersParams) ([]User, error)
-	ListTransfers(ctx context.Context) ([]Transfer, error)
-	ListTransfersFromAccount(ctx context.Context, fromAccountID uint64) ([]Transfer, error)
-	ListTransfersToAccount(ctx context.Context, toAccountID uint64) ([]Transfer, error)
+	ListTransfers(ctx context.Context, arg ListTransfersParams) ([]Transfer, error)
 	ListUsers(ctx context.Context) ([]User, error)
 	UpdateAccount(ctx context.Context, arg UpdateAccountParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error

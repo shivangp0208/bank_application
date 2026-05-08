@@ -3,14 +3,17 @@ syntax = "proto3";
 package pb;
 
 import "rpc_users.proto";
+import "rpc_accounts.proto";
 import "rpc_entries.proto";
+import "rpc_transfers.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
 option go_package = "github.com/shivangp0208/bank_application/pb";
 
 service SimpleBank {
-    rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {
+    // user service list
+    rpc CreateUser (CreateUserRequest) returns (User) {
         option (google.api.http) = {
             post: "/api/v1/users"
             body: "*"
@@ -22,7 +25,7 @@ service SimpleBank {
             body: "*"
         };
     }
-    rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse) {
+    rpc UpdateUser (UpdateUserRequest) returns (User) {
         option (google.api.http) = {
             patch: "/api/v1/users/{username}"
             body: "*"
@@ -33,12 +36,12 @@ service SimpleBank {
             get: "/api/v1/verify"
         };
     }
-    rpc GetUserByUsername (GetUserRequest) returns (GetUserResponse) {
+    rpc GetUserByUsername (GetUserRequest) returns (User) {
         option (google.api.http) = {
             get: "/api/v1/users/{username}"
         };
     }
-    rpc GetAllUser (GetAllUserRequest) returns (GetAllUserResponse) {
+    rpc GetAllUser (PaginationReq) returns (UserListResponse) {
         option (google.api.http) = {
             get: "/api/v1/users"
         };
@@ -49,9 +52,52 @@ service SimpleBank {
             body: "*"
         };
     }
-    rpc GetAllEntryForAccountID (AccountID) returns (EntryListResponse) {
+    rpc DeleteUser (GetUserRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/users"
+        };
+    }
+
+    // entries service list
+    rpc GetAllEntryForAccountID (GetAllEntryForAccountIDRequest) returns (EntryListResponse) {
         option (google.api.http) = {
             patch: "/api/v1/accounts/{account_id}/entries"
+            body: "*"
+        };
+    }
+    rpc GetAllEntries (PaginationReq) returns (EntryListResponse) {
+        option (google.api.http) = {
+            patch: "/api/v1/entries"
+        };
+    }
+
+    // accounts service list
+    rpc CreateAccount (CreateAccountRequest) returns (Account) {
+        option (google.api.http) = {
+            post: "/api/v1/accounts"
+            body: "*"
+        };
+    }
+    rpc GetAccountByID (AccountIDReq) returns (Account) {
+        option (google.api.http) = {
+            get: "/api/v1/accounts/{id}"
+        };
+    }
+    rpc GetAllAccount (PaginationReq) returns (AccountList) {
+        option (google.api.http) = {
+            get: "/api/v1/accounts"
+        };
+    }
+    rpc DeleteAccount (AccountIDReq) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/accounts/{id}"
+        };
+    }
+
+    // transfer service list
+    rpc TransferMoney (TransferMoneyRequest) returns (TransferMoneyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/transfer"
             body: "*"
         };
     }

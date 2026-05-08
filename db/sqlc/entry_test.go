@@ -65,7 +65,11 @@ func TestCreateEntries(t *testing.T) {
 
 func TestListEntries(t *testing.T) {
 	// list all accounts test
-	entryList, err := store.ListEntries(context.Background())
+	arg := ListEntriesParams{
+		Limit:  5,
+		Offset: 0,
+	}
+	entryList, err := store.ListEntries(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotNil(t, entryList)
 }

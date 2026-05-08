@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/shivangp0208/bank_application/pb";
+
+message Account {
+    uint64 id = 1;
+    string owner = 2;
+    string currency = 3;
+    google.protobuf.Timestamp created_at = 4;
+}
+
+message AccountList {
+    repeated Account accounts = 1;
+}
+
+// create account req
+message CreateAccountRequest {
+    string owner = 1;
+    string currency = 2;
+}
+
+// get account by account id req
+// delete account by account id req
+message AccountIDReq {
+    uint64 id = 1;
+}
