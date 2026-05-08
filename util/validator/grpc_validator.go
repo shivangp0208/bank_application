@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/mail"
 	"regexp"
+	"slices"
 
 	"github.com/shivangp0208/bank_application/pb"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -12,6 +13,7 @@ import (
 var (
 	isValidUsername = regexp.MustCompile(`^[a-z0-9_]+$`).MatchString
 	isValidFullName = regexp.MustCompile(`^[a-zA-Z]+(\s[a-zA-Z]+)+$`).MatchString
+	validCurrency   = []string{"INR", "CAD", "EUR"}
 )
 
 func ValidateString(str string, minLen int, maxLen int) error {
@@ -120,4 +122,8 @@ func ValidateVerifyUserEmailReq(req *pb.VerifyEmailRequest) (violations []*errde
 		violations = append(violations, ValidateField(req.SecretCode, err))
 	}
 	return violations
+}
+
+func ValidateCurrency(currency string) bool {
+	return slices.Contains(validCurrency, currency)
 }
