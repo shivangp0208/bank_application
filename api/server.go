@@ -57,31 +57,31 @@ func (s *Server) SetupRoute() {
 	router.POST("/api/v1/users/login", s.LoginUser)
 	router.POST("/api/v1/token/renew", s.RenewUserSession)
 
-	authRouter := router.Group("/").Use(authMiddleware(s.TokenMaker))
+	authRouter := router.Group("/api").Use(AuthenticationMiddleware(s.TokenMaker))
 
 	// authorized routes
 	// defining users routes
-	authRouter.GET("/api/v1/users/:username", s.GetUser)
-	authRouter.GET("/api/v1/users", s.GetAllUser)
-	authRouter.PATCH("/api/v1/users/:username", s.UpdateUser)
+	authRouter.GET("/v1/users/:username", s.GetUser)
+	authRouter.GET("/v1/users", s.GetAllUser)
+	authRouter.PATCH("/v1/users/:username", s.UpdateUser)
 	// as the above ones are for both admin level and user level api because in above api we have handle the case of authorization so that one user should not be able to other user's info
 	// so in this api i am using token for getting the username not depending on path url
-	authRouter.PATCH("/api/v1/users/me/password", s.UpdateUserPassword)
-	authRouter.DELETE("/api/v1/users/:username", s.DeleteUser)
+	authRouter.PATCH("/v1/users/me/password", s.UpdateUserPassword)
+	authRouter.DELETE("/v1/users/:username", s.DeleteUser)
 
 	// defining accounts routes
-	authRouter.POST("/api/v1/accounts", s.CreateAccount)
-	authRouter.GET("/api/v1/accounts/:id", s.GetAccountByID)
-	authRouter.GET("/api/v1/accounts", s.GetAllAccount)
+	authRouter.POST("/v1/accounts", s.CreateAccount)
+	authRouter.GET("/v1/accounts/:id", s.GetAccountByID)
+	authRouter.GET("/v1/accounts", s.GetAllAccount)
 	// authRouter.PUT("/api/v1/accounts/:id", s.UpdateAccount)
-	authRouter.DELETE("/api/v1/accounts/:id", s.DeleteAccount)
+	authRouter.DELETE("/v1/accounts/:id", s.DeleteAccount)
 
 	// defining transfer routes
-	authRouter.POST("/api/v1/transfer", s.TransferMoney)
+	authRouter.POST("/v1/transfer", s.TransferMoney)
 
 	// defining entries routes
-	authRouter.GET("/api/v1/accounts/:id/entries", s.GetAllEntryForAccountID)
-	authRouter.GET("/api/v1/entries", s.GetAllEntries)
+	authRouter.GET("/v1/accounts/:id/entries", s.GetAllEntryForAccountID)
+	authRouter.GET("/v1/entries", s.GetAllEntries)
 
 	s.Router = router
 }
