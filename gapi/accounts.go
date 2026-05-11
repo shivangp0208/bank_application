@@ -27,16 +27,13 @@ func (s *Server) CreateAccount(ctx context.Context, req *pb.CreateAccountRequest
 	}
 
 	accountRes, err := s.store.CreateAccounts(ctx, arg)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
 	accountId, err := accountRes.LastInsertId()
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	account, err := s.store.GetAccount(ctx, uint64(accountId))
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	if err := checkSqlErr(err); err != nil {
+		return nil, err
 	}
 
 	res := &pb.Account{

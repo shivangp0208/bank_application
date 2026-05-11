@@ -35,9 +35,9 @@ func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.GetAllEntr
 		logger.Info().Msgf("user %s is not an accountant, checking account ownership", payload.Username)
 
 		accountList, err := s.store.ListAllAccountIdByUsername(ctx, payload.Username)
-		if err != nil {
+		if err := checkSqlErr(err); err != nil {
 			err = errors.Join(fmt.Errorf("error getting the list of accounts for username %s: ", payload.Username), err)
-			return nil, status.Error(codes.Internal, err.Error())
+			return nil, err
 		}
 		logger.Info().Msgf("fetched %d accounts for user %s", len(accountList), payload.Username)
 
@@ -58,9 +58,9 @@ func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.GetAllEntr
 	logger.Info().Msgf("fetching entries for account_id: %d, username: %s", req.AccountId, payload.Username)
 
 	entryList, err := s.store.ListEntriesByAccountIdAndUsername(ctx, arg)
-	if err != nil {
+	if err := checkSqlErr(err); err != nil {
 		err = errors.Join(fmt.Errorf("error getting the list of entries: "), err)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 	logger.Info().Msgf("fetched %d entries for account_id: %d", len(entryList), req.AccountId)
 
@@ -102,10 +102,10 @@ func (s *Server) GetAllEntries(ctx context.Context, req *pb.PaginationReq) (*pb.
 		Offset: int32((uint64(req.PageNum)) * (req.PageSize + 1)),
 	}
 	entryList, err := s.store.ListEntries(ctx, arg)
-	if err != nil {
+	if err := checkSqlErr(err); err != nil {
 		err = errors.Join(fmt.Errorf("error getting the list of entries: "), err)
 		logger.Error().Msgf("unable to get the list of entries: %v", err)
-		return nil, status.Error(codes.PermissionDenied, err.Error())
+		return nil, err
 	}
 
 	res := &pb.EntryListResponse{}

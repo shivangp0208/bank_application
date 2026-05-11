@@ -65,8 +65,9 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 	}
 
 	txRes, err := s.store.CreateUserTx(ctx, arg)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to create user: %v", err.Error())
+	if err := checkSqlErr(err); err != nil {
+		err = errors.Join(fmt.Errorf("unable to create user:"), err)
+		return nil, err
 	}
 	logger.Info().
 		Str("full_name", txRes.User.FullName).
@@ -132,8 +133,10 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 	}
 
 	session, err := s.store.GetSession(c, refreshPayload.ID.String())
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to get the created session %v", err)
+	if err := checkSqlErr(err); err != nil {
+		logger.Error().Msg("unable to get the user details from token payload")
+		err = errors.Join(fmt.Errorf("unable to get the created session"), err)
+		return nil, err
 	}
 
 	res := pb.LoginUserResponse{
@@ -203,13 +206,15 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}
 
 	err = s.store.UpdateUser(ctx, arg)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to update user: %v", err.Error())
+	if err := checkSqlErr(err); err != nil {
+		err = errors.Join(fmt.Errorf("unable to update user"), err)
+		return nil, err
 	}
 
 	updatedUser, err := s.store.GetUser(ctx, req.Username)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to get the updated user: %v", err.Error())
+	if err := checkSqlErr(err); err != nil {
+		err = errors.Join(fmt.Errorf("unable to get the updated user"), err)
+		return nil, err
 	}
 
 	res := &pb.User{
@@ -280,7 +285,10 @@ func (s *Server) UpdateUserPassword(ctx context.Context, req *pb.UpdatePasswordR
 
 	if err := s.store.UpdateUser(ctx, arg); err != nil {
 		logger.Error().Msgf("unable to update the user's password %v", err)
-		return nil, status.Errorf(codes.Internal, "unable to update user's password: %v", err)
+		if err := checkSqlErr(err); err != nil {
+			err = errors.Join(fmt.Errorf("unable to update user's password"), err)
+			return nil, err
+		}
 	}
 	logger.Info().Msg("successfully updated user's password")
 
@@ -325,7 +333,7 @@ func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) 
 	logger.Info().Msgf("validation passed for all input arguments for get user req")
 
 	user, err := s.store.GetUser(ctx, req.GetUsername())
-	if err != nil {
+	if err := checkSqlErr(err); err != nil {
 		logger.Error().Str("username", req.Username).Msgf("unable to get the user: %v", err)
 		return nil, err
 	}
@@ -363,7 +371,7 @@ func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.Use
 	}
 
 	userList, err := s.store.ListPagedUsers(ctx, arg)
-	if err != nil {
+	if err := checkSqlErr(err); err != nil {
 		logger.Error().Msgf("unable to get all user details: %v", err)
 		return nil, err
 	}
@@ -412,8 +420,10 @@ func (s *Server) DeleteUser(ctx context.Context, req *pb.GetUserRequest) (*empty
 
 	if err := s.store.DeleteUser(ctx, payload.Username); err != nil {
 		logger.Error().Msgf("unable to delete the user: %v", err)
-		err := fmt.Errorf("unable to delete the user: %v", err)
-		return nil, status.Error(codes.Internal, err.Error())
+		if err := checkSqlErr(err); err != nil {
+			err = errors.Join(fmt.Errorf("unable to delete the user"), err)
+			return nil, err
+		}
 	}
 
 	return &emptypb.Empty{}, nil

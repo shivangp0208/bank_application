@@ -28,10 +28,10 @@ func (s *Server) TransferMoney(ctx context.Context, req *pb.TransferMoneyRequest
 	}
 
 	fromAccount, err := s.store.GetAccount(ctx, req.FromAccountId)
-	if err != nil {
-		errors.Join(fmt.Errorf("unable to get the account details:"), err)
+	if err := checkSqlErr(err); err != nil {
+		err = errors.Join(fmt.Errorf("unable to get the account details:"), err)
 		logger.Error().Msgf("unable to get the account details: %v", err)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	if fromAccount.Owner != payload.Username {
@@ -40,9 +40,8 @@ func (s *Server) TransferMoney(ctx context.Context, req *pb.TransferMoneyRequest
 	}
 
 	toAccount, err := s.store.GetAccount(ctx, req.ToAccountId)
-	if err != nil {
-		return nil, status.Error(codes.NotFound, err.Error())
-
+	if err := checkSqlErr(err); err != nil {
+		return nil, err
 	}
 
 	if fromAccount.Currency != toAccount.Currency {
@@ -57,9 +56,9 @@ func (s *Server) TransferMoney(ctx context.Context, req *pb.TransferMoneyRequest
 	}
 
 	transferRes, err := s.store.TransferTx(ctx, arg)
-	if err != nil {
-		errors.Join(fmt.Errorf("unable to do the transaction:"), err)
-		return nil, status.Error(codes.Internal, err.Error())
+	if err := checkSqlErr(err); err != nil {
+		err = errors.Join(fmt.Errorf("unable to do the transaction:"), err)
+		return nil, err
 	}
 
 	res := &pb.TransferMoneyResponse{
