@@ -144,8 +144,10 @@ func startGRPCSever(ctx context.Context, waitGroup *errgroup.Group, store db.Sto
 
 	// creating a new grpc server instance
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptors.GRPCLoggerInterceptor),
-		grpc.UnaryInterceptor(interceptors.GRPCAuthInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptors.GRPCLoggerInterceptor,
+			interceptors.GRPCAuthInterceptor,
+		),
 	)
 
 	// registering the grpc server by giving an grpc server instance and a server instance conatining all api's

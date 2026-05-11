@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/pb"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,9 +48,9 @@ func (s *Server) CreateAccount(ctx context.Context, req *pb.CreateAccountRequest
 
 func (s *Server) GetAccountByID(ctx context.Context, req *pb.AccountIDReq) (*pb.Account, error) {
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	userAccountList, err := s.store.ListAllAccountIdByUsername(ctx, payload.Username)
@@ -76,9 +77,9 @@ func (s *Server) GetAccountByID(ctx context.Context, req *pb.AccountIDReq) (*pb.
 }
 
 func (s *Server) GetAllAccount(ctx context.Context, req *pb.PaginationReq) (*pb.AccountList, error) {
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	if req.PageSize == 0 {
@@ -111,9 +112,9 @@ func (s *Server) GetAllAccount(ctx context.Context, req *pb.PaginationReq) (*pb.
 }
 
 func (s *Server) DeleteAccount(ctx context.Context, req *pb.AccountIDReq) (*empty.Empty, error) {
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	account, err := s.store.GetAccount(ctx, req.Id)

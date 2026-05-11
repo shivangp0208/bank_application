@@ -9,6 +9,12 @@ import (
 	"github.com/shivangp0208/bank_application/worker"
 )
 
+const (
+	AuthorizationHeaderKey  = "authorization"
+	AuthorizationType       = "bearer"
+	AuthorizationPayloadKey = "authorization_payload"
+)
+
 var Logger = util.GetLogger()
 
 type Server struct {

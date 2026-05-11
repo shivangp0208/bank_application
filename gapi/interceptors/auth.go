@@ -13,11 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	authorizationHeaderKey = "authorization"
-	authorizationType      = "bearer"
-)
-
 var logger = gapi.Logger
 
 func GRPCAuthInterceptor(
@@ -32,7 +27,7 @@ func GRPCAuthInterceptor(
 	}
 	logger.Debug().Msgf("successfully got the metadata from the incoming context %v", mtdt)
 
-	fields := mtdt.Get(authorizationHeaderKey)
+	fields := mtdt.Get(gapi.AuthorizationHeaderKey)
 	if len(fields) == 0 {
 		return nil, status.Error(codes.Unauthenticated, "no authorization provided in metadata")
 	}
@@ -43,7 +38,7 @@ func GRPCAuthInterceptor(
 	logger.Debug().Msgf("successfully got the authorization header from metadata %v", authorizationFields)
 
 	authType := strings.ToLower(authorizationFields[0])
-	if authType != authorizationType {
+	if authType != gapi.AuthorizationType {
 		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("invalid authorization type in authorization %s", authType))
 	}
 	logger.Debug().Msg("successfully validated the authorization type from the header")
@@ -54,5 +49,7 @@ func GRPCAuthInterceptor(
 		return nil, err
 	}
 	logger.Debug().Msgf("successfully verified the token %v", authorizationFields[1])
-	return payload, nil
+	ctx = context.WithValue(ctx, gapi.AuthorizationPayloadKey, payload)
+
+	return handler(ctx, req)
 }

@@ -8,6 +8,7 @@ import (
 
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/pb"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/util/validator"
 	"google.golang.org/grpc/codes"
@@ -18,10 +19,9 @@ import (
 func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.GetAllEntryForAccountIDRequest) (*pb.EntryListResponse, error) {
 	Logger.Info().Msgf("GetAllEntryForAccountID called with account_id: %d", req.AccountId)
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Error().Msgf("unauthenticated req error %v", err)
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 	Logger.Info().Msgf("authorized user: %s with role: %s", payload.Username, payload.Role)
 
@@ -80,10 +80,9 @@ func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.GetAllEntr
 
 func (s *Server) GetAllEntries(ctx context.Context, req *pb.PaginationReq) (*pb.EntryListResponse, error) {
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Error().Msgf("unauthenticated req error %v", err)
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 	Logger.Info().Msgf("authorized user: %s with role: %s", payload.Username, payload.Role)
 

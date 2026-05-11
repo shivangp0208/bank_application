@@ -12,6 +12,7 @@ import (
 	"github.com/hibiken/asynq"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/pb"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/util/validator"
 	"github.com/shivangp0208/bank_application/worker"
@@ -151,10 +152,9 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 
 func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.User, error) {
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Info().Msgf("authorization of user failed with req %v err %v", req, err)
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	if payload.Role != util.Accountant && payload.Username != req.Username {
@@ -203,7 +203,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 		}
 	}
 
-	err = s.store.UpdateUser(ctx, arg)
+	err := s.store.UpdateUser(ctx, arg)
 	if err := checkSqlErr(err); err != nil {
 		err = errors.Join(fmt.Errorf("unable to update user"), err)
 		return nil, err
@@ -230,10 +230,9 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 
 // TODO: create a seperate transactio for updating user's password
 func (s *Server) UpdateUserPassword(ctx context.Context, req *pb.UpdatePasswordRequest) (*empty.Empty, error) {
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Warn().Msgf("unauthorized user")
-		return nil, status.Errorf(codes.Unauthenticated, "unauthorized user: %v", err)
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 	Logger.Info().Msg("authentication and authorization successfull")
 
@@ -324,6 +323,15 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 
 func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
 	Logger.Info().Msgf("GET req to get the user by the user's username %s", req.Username)
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
+	}
+
+	if payload.Username != req.Username {
+		return nil, status.Errorf(codes.PermissionDenied, "unauthorized req, username mismatch in token %s and req %s", payload.Username, req.Username)
+	}
+
 	if err := validator.ValidateUsername(req.GetUsername()); err != nil {
 		Logger.Info().Msgf("validation failed for input arguments for get user by username req")
 		return nil, err
@@ -351,10 +359,9 @@ func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) 
 
 func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.UserListResponse, error) {
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Error().Msgf("unable to authorize user's token: %v", err)
-		return nil, err
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	// setting up a default page size
@@ -399,10 +406,9 @@ func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.Use
 
 func (s *Server) DeleteUser(ctx context.Context, req *pb.GetUserRequest) (*empty.Empty, error) {
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Error().Msgf("unable to authorize user's token: %v", err)
-		return nil, err
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	if err := validator.ValidateUsername(req.Username); err != nil {

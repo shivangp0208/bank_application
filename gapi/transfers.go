@@ -7,6 +7,7 @@ import (
 
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/pb"
+	"github.com/shivangp0208/bank_application/token"
 	"github.com/shivangp0208/bank_application/util/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,10 +16,9 @@ import (
 
 func (s *Server) TransferMoney(ctx context.Context, req *pb.TransferMoneyRequest) (*pb.TransferMoneyResponse, error) {
 
-	payload, err := s.authorizeUser(ctx)
-	if err != nil {
-		Logger.Error().Msgf("unable to authorize user's token: %v", err)
-		return nil, err
+	payload, ok := ctx.Value(AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid req")
 	}
 
 	if !validator.ValidateCurrency(req.Currency) {
