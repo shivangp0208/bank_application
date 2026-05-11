@@ -45,12 +45,7 @@ func (s *Server) GetAllEntryForAccountID(c *gin.Context) {
 
 	// if user is not accountant he should be only able to see his own entries
 	if authPayload.Role != util.Accountant {
-		arg := db.ListAllAccountIdByUsernameParams{
-			Username: authPayload.Username,
-			Limit:    int32(formReq.PageSize),
-			Offset:   int32((formReq.PageNo) * (formReq.PageSize + 1)),
-		}
-		accountList, err := s.Store.ListAllAccountIdByUsername(c, arg)
+		accountList, err := s.Store.ListAllAccountIdByUsername(c, authPayload.Username)
 		if err != nil {
 			err = errors.Join(fmt.Errorf("error getting the list of accounts for username %s: ", authPayload.Username), err)
 			c.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -66,6 +61,8 @@ func (s *Server) GetAllEntryForAccountID(c *gin.Context) {
 	arg := db.ListEntriesByAccountIdAndUsernameParams{
 		Username:  authPayload.Username,
 		AccountID: req.AccountID,
+		Limit:     int32(formReq.PageSize),
+		Offset:    int32((formReq.PageNo) * (formReq.PageSize + 1)),
 	}
 
 	entryList, err := s.Store.ListEntriesByAccountIdAndUsername(c, arg)

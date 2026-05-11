@@ -98,7 +98,8 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 	logger.Info().Msgf("validation passed for all input arguments for login user req")
 
 	user, err := s.store.GetUser(c, req.Username)
-	if ok, err := checkSqlErr(err); !ok {
+	if err := checkSqlErr(err); err != nil {
+		logger.Error().Msg("unable to get the user details from token payload")
 		return nil, err
 	}
 
@@ -249,9 +250,9 @@ func (s *Server) UpdateUserPassword(ctx context.Context, req *pb.UpdatePasswordR
 	logger.Info().Msg("successfully validated the user req for updating password")
 
 	user, err := s.store.GetUser(ctx, payload.Username)
-	if ok, err := checkSqlErr(err); !ok {
+	if err := checkSqlErr(err); err != nil {
 		logger.Error().Msg("unable to get the user details from token payload")
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 
 	if err := util.ComparePasswords(user.HashedPassword, req.OldPassword); err != nil {
@@ -418,14 +419,14 @@ func (s *Server) DeleteUser(ctx context.Context, req *pb.GetUserRequest) (*empty
 	return &emptypb.Empty{}, nil
 }
 
-func checkSqlErr(err error) (bool, error) {
+func checkSqlErr(err error) error {
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
-			return false, status.Errorf(codes.NotFound, "unable to find the user with given username, %v", err)
+			return status.Errorf(codes.NotFound, "unable to find the data: , %v", err)
 		}
-		return false, status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, err.Error())
 	}
-	return true, nil
+	return nil
 }
 
 func getUserResponse(user db.User) *pb.User {

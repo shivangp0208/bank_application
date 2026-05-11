@@ -10,9 +10,7 @@ WHERE id = ?;
 -- name: ListAllAccountIdByUsername :many
 SELECT a.id FROM accounts a 
 INNER JOIN users u ON a.owner = u.username 
-WHERE u.username = sqlc.arg(username)
-LIMIT ?
-OFFSET ?;
+WHERE u.username = sqlc.arg(username);
 
 -- name: ListAccounts :many
 SELECT * FROM accounts

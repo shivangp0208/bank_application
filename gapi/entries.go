@@ -34,10 +34,7 @@ func (s *Server) GetAllEntryForAccountID(ctx context.Context, req *pb.GetAllEntr
 	if payload.Role != util.Accountant {
 		logger.Info().Msgf("user %s is not an accountant, checking account ownership", payload.Username)
 
-		arg := db.ListAllAccountIdByUsernameParams{
-			Username: payload.Username,
-		}
-		accountList, err := s.store.ListAllAccountIdByUsername(ctx, arg)
+		accountList, err := s.store.ListAllAccountIdByUsername(ctx, payload.Username)
 		if err != nil {
 			err = errors.Join(fmt.Errorf("error getting the list of accounts for username %s: ", payload.Username), err)
 			return nil, status.Error(codes.Internal, err.Error())

@@ -1,7 +1,9 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -54,6 +56,7 @@ type GetAccountReq struct {
 
 func (s *Server) GetAccountByID(c *gin.Context) {
 
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	var req GetAccountReq
 
 	if err := c.ShouldBindUri(&req); err != nil {
@@ -61,14 +64,19 @@ func (s *Server) GetAccountByID(c *gin.Context) {
 		return
 	}
 
-	account, err := s.Store.GetAccount(c, req.ID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, errorResponse(err))
+	userAccountList, err := s.Store.ListAllAccountIdByUsername(c, authPayload.Username)
+	if ok := checkSqlErr(c, err); !ok {
 		return
 	}
 
-	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
-	if err := authorizeUser(c, account.Owner, authPayload); err != nil {
+	if !slices.Contains(userAccountList, req.ID) {
+		c.JSON(http.StatusForbidden, fmt.Errorf("unauthorized req"))
+		return
+	}
+
+	account, err := s.Store.GetAccount(c, req.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
 
@@ -198,5 +206,5 @@ func (s *Server) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNoContent, DeleteAccountReq{})
+	c.JSON(http.StatusNoContent, nil)
 }

@@ -376,7 +376,7 @@ func (mr *MockStoreMockRecorder) ListAccounts(arg0 interface{}) *gomock.Call {
 }
 
 // ListAllAccountIdByUsername mocks base method.
-func (m *MockStore) ListAllAccountIdByUsername(arg0 context.Context, arg1 db.ListAllAccountIdByUsernameParams) ([]uint64, error) {
+func (m *MockStore) ListAllAccountIdByUsername(arg0 context.Context, arg1 string) ([]uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllAccountIdByUsername", arg0, arg1)
 	ret0, _ := ret[0].([]uint64)
