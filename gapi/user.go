@@ -21,21 +21,19 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var logger = util.GetLogger()
-
 func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
 
 	if violations := validator.ValidateCreateUserReq(req); violations != nil {
-		logger.Error().Msgf("validation failed for input arguments for create user req")
+		Logger.Error().Msgf("validation failed for input arguments for create user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Info().Msgf("validation passed for all input arguments for create user req")
+	Logger.Info().Msgf("validation passed for all input arguments for create user req")
 
 	userPass, err := util.GenerateHashPassword(req.Password)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to hash the password: %v", err)
 	}
-	logger.Debug().Msg("successfully generated the hash password from the req password")
+	Logger.Debug().Msg("successfully generated the hash password from the req password")
 
 	arg := db.CreateUserTxParams{
 		User: db.CreateUserParams{
@@ -57,9 +55,9 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 
 			err := s.taskProducer.ProduceSendVerificationEmail(ctx, jsonPayload, opts...)
 			if err != nil {
-				logger.Error().Str("username", jsonPayload.Username).Msgf("unable to produce the verification email task in the async queue")
+				Logger.Error().Str("username", jsonPayload.Username).Msgf("unable to produce the verification email task in the async queue")
 			}
-			logger.Info().Str("username", jsonPayload.Username).Msgf("successfully produce the verification email task in the async queue")
+			Logger.Info().Str("username", jsonPayload.Username).Msgf("successfully produce the verification email task in the async queue")
 			return nil
 		},
 	}
@@ -69,7 +67,7 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 		err = errors.Join(fmt.Errorf("unable to create user:"), err)
 		return nil, err
 	}
-	logger.Info().
+	Logger.Info().
 		Str("full_name", txRes.User.FullName).
 		Str("email", txRes.User.Email).
 		Str("role", txRes.User.Role).
@@ -93,14 +91,14 @@ func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb
 func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
 
 	if violations := validator.ValidateLoginUserReq(req); violations != nil {
-		logger.Info().Msgf("validation failed for input arguments for login user req")
+		Logger.Info().Msgf("validation failed for input arguments for login user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Info().Msgf("validation passed for all input arguments for login user req")
+	Logger.Info().Msgf("validation passed for all input arguments for login user req")
 
 	user, err := s.store.GetUser(c, req.Username)
 	if err := checkSqlErr(err); err != nil {
-		logger.Error().Msg("unable to get the user details from token payload")
+		Logger.Error().Msg("unable to get the user details from token payload")
 		return nil, err
 	}
 
@@ -134,7 +132,7 @@ func (s *Server) LoginUser(c context.Context, req *pb.LoginUserRequest) (*pb.Log
 
 	session, err := s.store.GetSession(c, refreshPayload.ID.String())
 	if err := checkSqlErr(err); err != nil {
-		logger.Error().Msg("unable to get the user details from token payload")
+		Logger.Error().Msg("unable to get the user details from token payload")
 		err = errors.Join(fmt.Errorf("unable to get the created session"), err)
 		return nil, err
 	}
@@ -155,7 +153,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
-		logger.Info().Msgf("authorization of user failed with req %v err %v", req, err)
+		Logger.Info().Msgf("authorization of user failed with req %v err %v", req, err)
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
@@ -164,10 +162,10 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	}
 
 	if violations := validator.ValidateUpdateUserReq(req); violations != nil {
-		logger.Info().Msgf("validation failed for input arguments for update user req")
+		Logger.Info().Msgf("validation failed for input arguments for update user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Info().Msgf("validation passed for all input arguments for update user req")
+	Logger.Info().Msgf("validation passed for all input arguments for update user req")
 
 	arg := db.UpdateUserParams{
 		Username: req.Username,
@@ -190,10 +188,10 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 	if req.Password != nil && len(*req.Password) > 0 {
 		pass, err := util.GenerateHashPassword(*req.Password)
 		if err != nil {
-			logger.Info().Msgf("unable to generate the hash password for %s", *req.Password)
+			Logger.Info().Msgf("unable to generate the hash password for %s", *req.Password)
 			return nil, status.Errorf(codes.Internal, "unable to generate the hash password for %s", *req.Password)
 		}
-		logger.Info().Msgf("successfully generated the hashed password %v", arg.HashedPassword.String)
+		Logger.Info().Msgf("successfully generated the hashed password %v", arg.HashedPassword.String)
 
 		arg.HashedPassword = sql.NullString{
 			String: pass,
@@ -234,40 +232,40 @@ func (s *Server) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb
 func (s *Server) UpdateUserPassword(ctx context.Context, req *pb.UpdatePasswordRequest) (*empty.Empty, error) {
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
-		logger.Warn().Msgf("unauthorized user")
+		Logger.Warn().Msgf("unauthorized user")
 		return nil, status.Errorf(codes.Unauthenticated, "unauthorized user: %v", err)
 	}
-	logger.Info().Msg("authentication and authorization successfull")
+	Logger.Info().Msg("authentication and authorization successfull")
 
 	if err := validator.ValidatePassword(req.OldPassword); err != nil {
-		logger.Warn().Msgf("validation failed for old password in req")
+		Logger.Warn().Msgf("validation failed for old password in req")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	if err := validator.ValidatePassword(req.NewPassword); err != nil {
-		logger.Warn().Msgf("validation failed for new password in req")
+		Logger.Warn().Msgf("validation failed for new password in req")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if req.OldPassword == req.NewPassword {
-		logger.Warn().Msgf("validation failed for new password in req")
+		Logger.Warn().Msgf("validation failed for new password in req")
 		return nil, status.Errorf(codes.InvalidArgument, "cannot have new password same as old password")
 	}
-	logger.Info().Msg("successfully validated the user req for updating password")
+	Logger.Info().Msg("successfully validated the user req for updating password")
 
 	user, err := s.store.GetUser(ctx, payload.Username)
 	if err := checkSqlErr(err); err != nil {
-		logger.Error().Msg("unable to get the user details from token payload")
+		Logger.Error().Msg("unable to get the user details from token payload")
 		return nil, err
 	}
 
 	if err := util.ComparePasswords(user.HashedPassword, req.OldPassword); err != nil {
-		logger.Error().Msg("old password does not match with required pass")
+		Logger.Error().Msg("old password does not match with required pass")
 		return nil, status.Errorf(codes.InvalidArgument, "wrong password, old password does not match with required pass")
 	}
 
 	newPass, err := util.GenerateHashPassword(req.NewPassword)
 	if err != nil {
-		logger.Error().Msgf("unable to generate hashed password for new password: %v", err)
+		Logger.Error().Msgf("unable to generate hashed password for new password: %v", err)
 		return nil, status.Errorf(codes.Internal, "unable to generate hashed password for new password: %v", err)
 	}
 
@@ -284,26 +282,26 @@ func (s *Server) UpdateUserPassword(ctx context.Context, req *pb.UpdatePasswordR
 	}
 
 	if err := s.store.UpdateUser(ctx, arg); err != nil {
-		logger.Error().Msgf("unable to update the user's password %v", err)
+		Logger.Error().Msgf("unable to update the user's password %v", err)
 		if err := checkSqlErr(err); err != nil {
 			err = errors.Join(fmt.Errorf("unable to update user's password"), err)
 			return nil, err
 		}
 	}
-	logger.Info().Msg("successfully updated user's password")
+	Logger.Info().Msg("successfully updated user's password")
 
 	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest) (*pb.VerifyEmailResponse, error) {
 
-	logger.Info().Msgf("req to verify the email by the user's username %s", req.Username)
+	Logger.Info().Msgf("req to verify the email by the user's username %s", req.Username)
 	// validate all field according to format in the given req
 	if violations := validator.ValidateVerifyUserEmailReq(req); violations != nil {
-		logger.Warn().Msgf("validation failed for input arguments for verify user req")
+		Logger.Warn().Msgf("validation failed for input arguments for verify user req")
 		return nil, validator.InvalidArgumentError(violations)
 	}
-	logger.Info().Msgf("validation passed for all input arguments for verify user req")
+	Logger.Info().Msgf("validation passed for all input arguments for verify user req")
 
 	// update the db for verify emails by checking all validation
 	verifiedUser, err := s.store.VerifyUserEmailTx(ctx, db.VerifyUserTxParams{
@@ -311,10 +309,10 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 		SecretCode: req.SecretCode,
 	})
 	if err != nil {
-		logger.Error().Msgf("unable to verify the user: %v", err)
+		Logger.Error().Msgf("unable to verify the user: %v", err)
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
-	logger.Info().Msgf("success verifying user, updated all db records")
+	Logger.Info().Msgf("success verifying user, updated all db records")
 
 	result := &pb.VerifyEmailResponse{
 		Username: verifiedUser.User.Username,
@@ -325,16 +323,16 @@ func (s *Server) VerifyUserEmail(ctx context.Context, req *pb.VerifyEmailRequest
 }
 
 func (s *Server) GetUserByUsername(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
-	logger.Info().Msgf("GET req to get the user by the user's username %s", req.Username)
+	Logger.Info().Msgf("GET req to get the user by the user's username %s", req.Username)
 	if err := validator.ValidateUsername(req.GetUsername()); err != nil {
-		logger.Info().Msgf("validation failed for input arguments for get user by username req")
+		Logger.Info().Msgf("validation failed for input arguments for get user by username req")
 		return nil, err
 	}
-	logger.Info().Msgf("validation passed for all input arguments for get user req")
+	Logger.Info().Msgf("validation passed for all input arguments for get user req")
 
 	user, err := s.store.GetUser(ctx, req.GetUsername())
 	if err := checkSqlErr(err); err != nil {
-		logger.Error().Str("username", req.Username).Msgf("unable to get the user: %v", err)
+		Logger.Error().Str("username", req.Username).Msgf("unable to get the user: %v", err)
 		return nil, err
 	}
 
@@ -355,7 +353,7 @@ func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.Use
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
-		logger.Error().Msgf("unable to authorize user's token: %v", err)
+		Logger.Error().Msgf("unable to authorize user's token: %v", err)
 		return nil, err
 	}
 
@@ -363,7 +361,7 @@ func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.Use
 	if req.PageSize == 0 {
 		req.PageSize = 5
 	}
-	logger.Debug().Msgf("GET req to get all the users info with pageNum %d and pageSize %d", req.PageNum, req.PageSize)
+	Logger.Debug().Msgf("GET req to get all the users info with pageNum %d and pageSize %d", req.PageNum, req.PageSize)
 
 	arg := db.ListPagedUsersParams{
 		Limit:  int32(req.PageSize),
@@ -372,10 +370,10 @@ func (s *Server) GetAllUser(ctx context.Context, req *pb.PaginationReq) (*pb.Use
 
 	userList, err := s.store.ListPagedUsers(ctx, arg)
 	if err := checkSqlErr(err); err != nil {
-		logger.Error().Msgf("unable to get all user details: %v", err)
+		Logger.Error().Msgf("unable to get all user details: %v", err)
 		return nil, err
 	}
-	logger.Debug().Msgf("successfully retrieved all user list with length %d", len(userList))
+	Logger.Debug().Msgf("successfully retrieved all user list with length %d", len(userList))
 
 	var pbUserList []*pb.User
 	for _, user := range userList {
@@ -403,23 +401,23 @@ func (s *Server) DeleteUser(ctx context.Context, req *pb.GetUserRequest) (*empty
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
-		logger.Error().Msgf("unable to authorize user's token: %v", err)
+		Logger.Error().Msgf("unable to authorize user's token: %v", err)
 		return nil, err
 	}
 
 	if err := validator.ValidateUsername(req.Username); err != nil {
-		logger.Error().Msg(err.Error())
+		Logger.Error().Msg(err.Error())
 		return nil, status.Errorf(codes.InvalidArgument, "invalid argument: %v", err.Error())
 	}
 
 	if payload.Role != util.Accountant && req.Username != payload.Username {
-		logger.Error().Str("req_username", req.Username).Str("token_username", payload.Username).Msgf("username mismatch in token and req")
+		Logger.Error().Str("req_username", req.Username).Str("token_username", payload.Username).Msgf("username mismatch in token and req")
 		err := fmt.Errorf("account doesn't belong to the authenticated user, username mismatch, unauthorized")
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	if err := s.store.DeleteUser(ctx, payload.Username); err != nil {
-		logger.Error().Msgf("unable to delete the user: %v", err)
+		Logger.Error().Msgf("unable to delete the user: %v", err)
 		if err := checkSqlErr(err); err != nil {
 			err = errors.Join(fmt.Errorf("unable to delete the user"), err)
 			return nil, err

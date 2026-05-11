@@ -6,26 +6,22 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
+	"github.com/shivangp0208/bank_application/config"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/token"
-	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/worker"
 )
 
 type Server struct {
 	Store        db.Store
 	TokenMaker   token.Maker
-	Config       *util.Config
+	Config       *config.Config
 	Router       *gin.Engine
 	TaskProducer worker.TaskProducer
 }
 
-func NewServer(store db.Store, config util.Config, producer worker.TaskProducer) (*Server, error) {
-	jwtMaker, err := token.NewJwtMaker(config.AccessTokenSecretKey)
-	if err != nil {
-		return nil, err
-	}
-
+func NewServer(store db.Store, config config.Config, producer worker.TaskProducer) (*Server, error) {
+	jwtMaker := token.GetJWTMaker()
 	// defining a server with sb configuration
 	server := &Server{
 		Config:       &config,

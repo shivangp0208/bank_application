@@ -16,8 +16,10 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/hibiken/asynq"
 	"github.com/shivangp0208/bank_application/api"
+	"github.com/shivangp0208/bank_application/config"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/gapi"
+	"github.com/shivangp0208/bank_application/gapi/interceptors"
 	"github.com/shivangp0208/bank_application/mailer"
 	"github.com/shivangp0208/bank_application/pb"
 	"github.com/shivangp0208/bank_application/util"
@@ -36,14 +38,14 @@ var interruptSignals = []os.Signal{
 
 var conn *sql.DB
 var err error
-var config util.Config
+var mainConfig config.Config
 var logger = util.GetLogger()
 
 func init() {
 	gin.SetMode(gin.ReleaseMode)
-	config = util.GetConfig()
-	conn, err = sql.Open(config.DBDriver, config.DBSource)
-	logger.Info().Msgf("init main: dbDriver: %s and dbSource: %s", config.DBDriver, config.DBSource)
+	mainConfig = config.GetConfig()
+	conn, err = sql.Open(mainConfig.DBDriver, mainConfig.DBSource)
+	logger.Info().Msgf("init main: dbDriver: %s and dbSource: %s", mainConfig.DBDriver, mainConfig.DBSource)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to open db connection: %v", err))
 	}
@@ -57,7 +59,7 @@ func main() {
 	store := db.NewStore(conn)
 
 	redisOpt := asynq.RedisClientOpt{
-		Addr: config.RedisServerAddress,
+		Addr: mainConfig.RedisServerAddress,
 	}
 
 	taskProducer := worker.NewRedisTaskProducer(redisOpt)
@@ -77,9 +79,9 @@ func main() {
 
 func runTaskProcessorServer(ctx context.Context, waitGroup *errgroup.Group, redisOpt asynq.RedisClientOpt, store db.Store) {
 
-	emailSender := mailer.NewGmailSender(config)
+	emailSender := mailer.NewGmailSender(mainConfig)
 
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailSender, &config)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailSender, &mainConfig)
 	logger.Info().Msg("initailizing and starting task processor server")
 
 	if err := taskProcessor.Start(); err != nil {
@@ -98,25 +100,25 @@ func runTaskProcessorServer(ctx context.Context, waitGroup *errgroup.Group, redi
 }
 
 func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store, taskProducer worker.TaskProducer) {
-	server, err := api.NewServer(store, config, taskProducer)
+	server, err := api.NewServer(store, mainConfig, taskProducer)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create Gin server due to err %v", err))
 	}
 
 	httpServer := &http.Server{
-		Addr:    config.GinHTTPServerAddress,
+		Addr:    mainConfig.GinHTTPServerAddress,
 		Handler: server.Router,
 	}
 
 	waitGroup.Go(func() error {
 		err = httpServer.ListenAndServe()
 		// err = server.Start(config.GinHTTPServerAddress)
-		logger.Info().Msgf("Gin server listnening on address %s", config.GinHTTPServerAddress)
+		logger.Info().Msgf("Gin server listnening on address %s", mainConfig.GinHTTPServerAddress)
 		if err != nil {
 			if errors.Is(err, http.ErrServerClosed) {
 				return nil
 			}
-			logger.Err(fmt.Errorf("unable to start the Gin server with address %s due to err %v", config.GinHTTPServerAddress, err))
+			logger.Err(fmt.Errorf("unable to start the Gin server with address %s due to err %v", mainConfig.GinHTTPServerAddress, err))
 			return err
 		}
 		return nil
@@ -135,32 +137,34 @@ func startGinSever(ctx context.Context, waitGroup *errgroup.Group, store db.Stor
 
 func startGRPCSever(ctx context.Context, waitGroup *errgroup.Group, store db.Store, taskProducer worker.TaskProducer) {
 
-	server, err := gapi.NewServer(store, config, taskProducer)
+	server, err := gapi.NewServer(store, mainConfig, taskProducer)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create the grpc server due to %v", err))
 	}
 
 	// creating a new grpc server instance
-	grpcLogger := grpc.UnaryInterceptor(util.GRPCLoggerInterceptor)
-	grpcServer := grpc.NewServer(grpcLogger)
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.GRPCLoggerInterceptor),
+		grpc.UnaryInterceptor(interceptors.GRPCAuthInterceptor),
+	)
 
 	// registering the grpc server by giving an grpc server instance and a server instance conatining all api's
 	pb.RegisterSimpleBankServer(grpcServer, server)
 	reflection.Register(grpcServer)
 
 	// listen on a tcp port to handle grpc req
-	lis, err := net.Listen("tcp", config.GRPCServerAddress)
+	lis, err := net.Listen("tcp", mainConfig.GRPCServerAddress)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create grpc listner due to err %v", err))
 	}
 
 	waitGroup.Go(func() error {
-		logger.Info().Msgf("grpc server listnening on address %s", config.GRPCServerAddress)
+		logger.Info().Msgf("grpc server listnening on address %s", mainConfig.GRPCServerAddress)
 		if err := grpcServer.Serve(lis); err != nil {
 			if errors.Is(err, grpc.ErrServerStopped) {
 				return nil
 			}
-			logger.Err(fmt.Errorf("unable to start the grpc server with address %s due to err %v", config.GRPCServerAddress, err))
+			logger.Err(fmt.Errorf("unable to start the grpc server with address %s due to err %v", mainConfig.GRPCServerAddress, err))
 			return err
 		}
 		return nil
@@ -168,7 +172,7 @@ func startGRPCSever(ctx context.Context, waitGroup *errgroup.Group, store db.Sto
 
 	waitGroup.Go(func() error {
 		<-ctx.Done()
-		logger.Info().Msgf("gracefully shutting down the grpc server with host: %s", config.GRPCServerAddress)
+		logger.Info().Msgf("gracefully shutting down the grpc server with host: %s", mainConfig.GRPCServerAddress)
 
 		grpcServer.GracefulStop()
 		logger.Info().Msg("grpc server gracefully shutted down")
@@ -179,7 +183,7 @@ func startGRPCSever(ctx context.Context, waitGroup *errgroup.Group, store db.Sto
 
 func startGRPCGatewaySever(ctx context.Context, waitGroup *errgroup.Group, store db.Store, taskProducer worker.TaskProducer) {
 
-	server, err := gapi.NewServer(store, config, taskProducer)
+	server, err := gapi.NewServer(store, mainConfig, taskProducer)
 	if err != nil {
 		logger.Err(fmt.Errorf("unable to create the grpc gateway server due to %v", err))
 	}
@@ -210,17 +214,17 @@ func startGRPCGatewaySever(ctx context.Context, waitGroup *errgroup.Group, store
 	mux.Handle("/api/swagger/ui", http.StripPrefix("/swagger/", swaggerHandler))
 
 	httpServer := &http.Server{
-		Addr:    config.GRPCGatewayServerAddress,
-		Handler: util.HTTPLogger(mux),
+		Addr:    mainConfig.GRPCGatewayServerAddress,
+		Handler: interceptors.HTTPLogger(mux),
 	}
 
 	waitGroup.Go(func() error {
-		logger.Info().Msgf("grpc gateway server listnening on address %s", config.GRPCGatewayServerAddress)
+		logger.Info().Msgf("grpc gateway server listnening on address %s", mainConfig.GRPCGatewayServerAddress)
 		if err := httpServer.ListenAndServe(); err != nil {
 			if errors.Is(err, http.ErrServerClosed) {
 				return nil
 			}
-			logger.Err(fmt.Errorf("unable to start the grpc gateway server with address %s due to err %v", config.GRPCGatewayServerAddress, err))
+			logger.Err(fmt.Errorf("unable to start the grpc gateway server with address %s due to err %v", mainConfig.GRPCGatewayServerAddress, err))
 			return err
 		}
 		return nil
@@ -228,11 +232,11 @@ func startGRPCGatewaySever(ctx context.Context, waitGroup *errgroup.Group, store
 
 	waitGroup.Go(func() error {
 		<-ctx.Done()
-		logger.Info().Msgf("gracefully shutting down th grpc gateway server with host: %s", config.GRPCServerAddress)
+		logger.Info().Msgf("gracefully shutting down th grpc gateway server with host: %s", mainConfig.GRPCServerAddress)
 
 		err = httpServer.Shutdown(context.Background())
 		if err != nil {
-			logger.Error().Msgf("unable to gracefully shutdown the grpc gateway server with host %s", config.GRPCGatewayServerAddress)
+			logger.Error().Msgf("unable to gracefully shutdown the grpc gateway server with host %s", mainConfig.GRPCGatewayServerAddress)
 			return err
 		}
 		logger.Info().Msg("grpc gateway server gracefully shutted down")

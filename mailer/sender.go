@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/gomail.v2"
 
+	"github.com/shivangp0208/bank_application/config"
 	"github.com/shivangp0208/bank_application/util"
 )
 
@@ -56,7 +57,7 @@ func (sender *GmailSender) SendEmail(
 	return nil
 }
 
-func NewGmailSender(config util.Config) EmailSender {
+func NewGmailSender(config config.Config) EmailSender {
 	smtpServerAdd := config.EmailHost + ":" + strconv.Itoa(config.EmailHostPort)
 	return &GmailSender{
 		name:              config.SenderName,

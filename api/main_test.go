@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shivangp0208/bank_application/config"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/util"
 	"github.com/shivangp0208/bank_application/worker"
@@ -13,7 +14,7 @@ import (
 )
 
 func newTestServer(t *testing.T, store db.Store) *Server {
-	config := util.Config{
+	config := config.Config{
 		AccessTokenSecretKey:      util.GenerateString(32),
 		AccessTokenExpirationTime: time.Minute,
 	}

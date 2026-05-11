@@ -5,25 +5,33 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/shivangp0208/bank_application/util"
+	"github.com/shivangp0208/bank_application/config"
 )
 
-var config util.Config
+var tokenConfig config.Config
 
 var ErrInvalidSecretKey error = errors.New("invalid secret key")
 var ErrExpiredToken error = errors.New("invalid token, token is expired")
 var ErrInvalidToken error = errors.New("invalid token")
 
 func init() {
-	config = util.GetConfig()
+	tokenConfig = config.GetConfig()
 }
 
 type JWTMaker struct {
 	secretKey string
 }
 
+func GetJWTMaker() Maker {
+	tokenMaker, err := NewJwtMaker(tokenConfig.AccessTokenSecretKey)
+	if err != nil {
+		panic("unable to build tht token maker")
+	}
+	return tokenMaker
+}
+
 func NewJwtMaker(secretKey string) (jwtMaker Maker, err error) {
-	if len(secretKey) < config.MinSecretKeyLength {
+	if len(secretKey) < tokenConfig.MinSecretKeyLength {
 		return nil, ErrInvalidSecretKey
 	}
 	return &JWTMaker{secretKey}, nil

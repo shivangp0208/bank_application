@@ -17,20 +17,20 @@ func (s *Server) TransferMoney(ctx context.Context, req *pb.TransferMoneyRequest
 
 	payload, err := s.authorizeUser(ctx)
 	if err != nil {
-		logger.Error().Msgf("unable to authorize user's token: %v", err)
+		Logger.Error().Msgf("unable to authorize user's token: %v", err)
 		return nil, err
 	}
 
 	if !validator.ValidateCurrency(req.Currency) {
 		err := fmt.Errorf("invalid currency, currency %s not supported", req.Currency)
-		logger.Error().Msgf("invalid currency, currency %s not supported", req.Currency)
+		Logger.Error().Msgf("invalid currency, currency %s not supported", req.Currency)
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	fromAccount, err := s.store.GetAccount(ctx, req.FromAccountId)
 	if err := checkSqlErr(err); err != nil {
 		err = errors.Join(fmt.Errorf("unable to get the account details:"), err)
-		logger.Error().Msgf("unable to get the account details: %v", err)
+		Logger.Error().Msgf("unable to get the account details: %v", err)
 		return nil, err
 	}
 

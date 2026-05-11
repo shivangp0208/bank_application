@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hibiken/asynq"
+	"github.com/shivangp0208/bank_application/config"
 	db "github.com/shivangp0208/bank_application/db/sqlc"
 	"github.com/shivangp0208/bank_application/util"
 )
@@ -97,7 +98,7 @@ func (processor *RedisTaskProcessor) Shutdown() {
 	processor.server.Shutdown()
 }
 
-func GetVerificationMail(username string, secret string, config *util.Config) (subject string, body string) {
+func GetVerificationMail(username string, secret string, config *config.Config) (subject string, body string) {
 	subject = "Verify Email For Bank"
 
 	verificationLink := fmt.Sprintf("http://localhost:%s/api/v1/verify?username=%s&secret_code=%s", config.MailVerificationPort, username, secret)
